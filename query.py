@@ -1,4 +1,9 @@
 from connection import get_connection, release_connection, init_connection_pool, close_connection_pool
+import json
+import datetime
+import decimal
+from datetime import date, datetime as dt
+
 
 class LibraryDatabaseManager:
     def __init__(self):
@@ -21,9 +26,34 @@ class LibraryDatabaseManager:
         GROUP BY b.book_id, b.title
         ORDER BY total_issues DESC;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        finally:
+            release_connection(conn)
+
 
     def get_materialized_view_popular_books(self):
-        sql = """SELECT * FROM mv_popular_books ORDER BY total_issues DESC;"""
+        sql = "SELECT * FROM mv_popular_books ORDER BY total_issues DESC;"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                columns = [desc[0] for desc in cur.description]  
+                rows = cur.fetchall()
+            
+            
+            data = [dict(zip(columns, row)) for row in rows]
+
+            
+            return json.dumps({"status": "success", "data": data}, indent=4)
+        except Exception as e:
+            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+        finally:
+            release_connection(conn)
+
 
     def create_materialized_view_overdue_transactions(self):
         sql = """
@@ -45,9 +75,35 @@ class LibraryDatabaseManager:
         JOIN books b ON bc.book_id = b.book_id
         JOIN student s ON i.student_id = s.student_id;
         """
+        conn = get_connection() 
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Materialized view 'mv_overdue_transactions' created successfully!")
+        except Exception as e:
+            print(f"Error creating materialized view: {e}")
+        finally:
+            release_connection(conn) 
 
     def get_materialized_view_overdue_transactions(self):
         sql = """SELECT * FROM mv_overdue_transactions WHERE status = 'Overdue';"""
+        conn = get_connection() 
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                columns = [desc[0] for desc in cur.description] 
+                rows = cur.fetchall()
+
+            
+            data = [dict(zip(columns, row)) for row in rows]
+
+            
+            return json.dumps({"status": "success", "data": data}, indent=4, default=str)
+        except Exception as e:
+            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+        finally:
+            release_connection(conn) 
 
     def create_materialized_view_all_books_summary(self):
         sql = """
@@ -63,9 +119,37 @@ class LibraryDatabaseManager:
         JOIN author a ON b.author = a.author_id
         JOIN categories c ON b.category = c.category_id;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Materialized view 'mv_all_books_summary' created successfully!")
+        except Exception as e:
+            print(f"Error creating materialized view: {e}")
+        finally:
+            release_connection(conn)
 
     def get_all_books_from_materialized_view(self):
         sql = """SELECT * FROM mv_all_books_summary;"""
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                rows = cur.fetchall()
+                columns = [desc[0] for desc in cur.description]
+
+            
+            data = [dict(zip(columns, row)) for row in rows]
+
+            
+            return json.dumps({"status": "success", "data": data}, indent=4)
+
+        except Exception as e:
+            print(f"Error fetching all books summary: {e}")
+            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+        finally:
+            release_connection(conn)
 
     def create_materialized_view_user_borrowing_history(self):
         sql = """
@@ -83,9 +167,39 @@ class LibraryDatabaseManager:
         JOIN books b ON bc.book_id = b.book_id
         LEFT JOIN returns r ON i.issue_id = r.issue_id;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        finally:
+            release_connection(conn)
+        
 
     def get_user_borrowing_history(self, user_id):
         sql = f"""SELECT * FROM mv_user_borrowing_history WHERE student_id = {user_id};"""
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (user_id,))
+                rows = cur.fetchall()
+                columns = [desc[0] for desc in cur.description]
+
+            data = []
+            for row in rows:
+                record = dict(zip(columns, row))
+                
+                for k, v in record.items():
+                    if isinstance(v, (datetime.date, datetime.datetime)):
+                        record[k] = v.isoformat()
+                data.append(record)
+
+            return json.dumps({"status": "success", "data": data}, indent=4)
+
+        except Exception as e:
+            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+        finally:
+            release_connection(conn)
 
     def create_materialized_view_fines_report(self):
         sql = """
@@ -98,10 +212,39 @@ class LibraryDatabaseManager:
         JOIN student s ON i.student_id = s.student_id
         GROUP BY s.name;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        finally:
+            release_connection(conn)
 
     def get_fines_report(self):
         sql = """SELECT * FROM mv_fines_report ORDER BY total_fines DESC;"""
-
+        conn = get_connection()
+    
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                rows = cur.fetchall()
+                columns = [desc[0] for desc in cur.description]
+            data = []
+            for row in rows:
+                record = {}
+                for col, val in zip(columns, row):
+                    if isinstance(val, decimal.Decimal):
+                        record[col] = float(val)
+                    elif isinstance(val, date):
+                        record[col] = val.isoformat()
+                    else:
+                        record[col] = val
+                data.append(record)
+            return json.dumps({"status": "success", "data": data}, indent=4)
+        except Exception as e:
+            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+        finally:
+            release_connection(conn)
 
     # PART 2: TRIGGERS
 
@@ -312,4 +455,30 @@ class LibraryDatabaseManager:
 
 if __name__ == "__main__":
     db = LibraryDatabaseManager()
-    close_connection_pool()
+    db.create_materialized_view_popular_books()
+    print("Materialized view 'mv_popular_books' created successfully!")
+    json_response = db.get_materialized_view_popular_books()
+    print("\n📚 Popular Books (JSON Response):")
+    print(json_response)
+        
+    
+    db.create_materialized_view_overdue_transactions()
+    json_response = db.get_materialized_view_overdue_transactions()
+    print("\nOverdue Transactions (from materialized view):")
+    print(json_response)
+    
+    db.create_materialized_view_all_books_summary()
+    json_response = db.get_all_books_from_materialized_view()
+    print("\nAll Books Summary (from materialized view):")
+    print(json_response)
+    
+    db.create_materialized_view_user_borrowing_history()
+    user_id = 1
+    json_response = db.get_user_borrowing_history(user_id)
+    print(f"\nUser Borrowing History for User ID {user_id}:")
+    print(json_response)
+    
+    db.create_materialized_view_fines_report()
+    json_response = db.get_fines_report()
+    print("\nFines Report (from materialized view):")
+    print(json_response)
