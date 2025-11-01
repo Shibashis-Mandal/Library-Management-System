@@ -48,7 +48,7 @@ class LibraryDatabaseManager:
             data = [dict(zip(columns, row)) for row in rows]
 
             
-            return {"status": "success", "data": data}
+            return json.dumps({"status": "success", "data": data}, indent=4)
         except Exception as e:
             return {"status": "error", "message": str(e)}
         finally:
@@ -98,10 +98,10 @@ class LibraryDatabaseManager:
             
             data = [dict(zip(columns, row)) for row in rows]
 
-            
-            return json.dumps({"status": "success", "data": data}, indent=4, default=str)
+
+            return {"status": "success", "data": data}
         except Exception as e:
-            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+            return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn) 
 
@@ -142,12 +142,11 @@ class LibraryDatabaseManager:
             
             data = [dict(zip(columns, row)) for row in rows]
 
-            
-            return json.dumps({"status": "success", "data": data}, indent=4)
+            return {"status": "success", "data": data}
 
         except Exception as e:
             print(f"Error fetching all books summary: {e}")
-            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+            return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
 
@@ -194,10 +193,10 @@ class LibraryDatabaseManager:
                         record[k] = v.isoformat()
                 data.append(record)
 
-            return json.dumps({"status": "success", "data": data}, indent=4)
+            return {"status": "success", "data": data}
 
         except Exception as e:
-            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+            return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
 
@@ -240,9 +239,9 @@ class LibraryDatabaseManager:
                     else:
                         record[col] = val
                 data.append(record)
-            return json.dumps({"status": "success", "data": data}, indent=4)
+            return {"status": "success", "data": data}
         except Exception as e:
-            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+            return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
 
@@ -263,6 +262,15 @@ class LibraryDatabaseManager:
         FOR EACH ROW
         EXECUTE FUNCTION update_status_after_issue();
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        except Exception as e:
+            print(f"Error creating trigger for book issue: {e}")
+        finally:
+            release_connection(conn)
 
     def create_after_book_return_trigger(self):
         sql = """
@@ -280,6 +288,16 @@ class LibraryDatabaseManager:
         FOR EACH ROW
         EXECUTE FUNCTION update_status_after_return();
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        except Exception as e:
+            print(f"Error creating trigger for book return: {e}")
+        finally:
+            release_connection(conn)
+        
 
     def create_books_audit_log_trigger(self):
         sql = """
@@ -304,6 +322,16 @@ class LibraryDatabaseManager:
         FOR EACH ROW
         EXECUTE FUNCTION log_books_changes();
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        except Exception as e:
+            
+            print(f"Error creating books audit log trigger: {e}")
+        finally:
+            release_connection(conn)
 
     def create_new_book_trigger(self):
         sql = """
@@ -321,6 +349,15 @@ class LibraryDatabaseManager:
         FOR EACH ROW
         EXECUTE FUNCTION log_new_book();
         """
+        conn = get_connection() 
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+        except Exception as e:
+            print(f"Error creating new book trigger: {e}")
+        finally:
+            release_connection(conn)
 
 
     # PART 3: STORED PROCEDURES
@@ -342,6 +379,31 @@ class LibraryDatabaseManager:
         END;
         $$;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'insert_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating stored procedure: {e}")
+        finally:
+            release_connection(conn)
+        
+        
+    def stored_procedure_insert_book(self, title, author, category, isbn, total_copies):
+        sql = "CALL insert_book(%s, %s, %s, %s, %s);"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (title, author, category, isbn, total_copies))
+                conn.commit()
+            return {"status": "success", "message": f"Book '{title}' inserted successfully!"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
+
 
     def create_stored_procedure_delete_book(self):
         sql = """
@@ -354,6 +416,29 @@ class LibraryDatabaseManager:
         END;
         $$;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'delete_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating stored procedure: {e}")
+        finally:
+            release_connection(conn)
+            
+    def stored_procedure_delete_book(self, book_id):
+        sql = "CALL delete_book(%s);"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (book_id,))
+                conn.commit()
+            return {"status": "success", "message": f"Book with ID {book_id} deleted successfully!"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
 
     def create_stored_procedure_issue_book(self):
         sql = """
@@ -367,6 +452,17 @@ class LibraryDatabaseManager:
         END;
         $$;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'delete_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating stored procedure: {e}")
+        finally:
+            release_connection(conn)
+        
 
     def create_stored_procedure_return_book(self):
         sql = """
@@ -455,30 +551,60 @@ class LibraryDatabaseManager:
 
 if __name__ == "__main__":
     db = LibraryDatabaseManager()
-    db.create_materialized_view_popular_books()
-    print("Materialized view 'mv_popular_books' created successfully!")
-    json_response = db.get_materialized_view_popular_books()
-    print("\n📚 Popular Books (JSON Response):")
-    print(json_response)
+    # db.create_materialized_view_popular_books()
+    # print("Materialized view 'mv_popular_books' created successfully!")
+    # json_response = db.get_materialized_view_popular_books()
+    # print("\n Popular Books (JSON Response):")
+    # print(json_response)
         
     
-    db.create_materialized_view_overdue_transactions()
-    json_response = db.get_materialized_view_overdue_transactions()
-    print("\nOverdue Transactions (from materialized view):")
-    print(json_response)
+    # db.create_materialized_view_overdue_transactions()
+    # json_response = db.get_materialized_view_overdue_transactions()
+    # print("\nOverdue Transactions (from materialized view):")
+    # print(json_response)
     
-    db.create_materialized_view_all_books_summary()
-    json_response = db.get_all_books_from_materialized_view()
-    print("\nAll Books Summary (from materialized view):")
-    print(json_response)
+    # db.create_materialized_view_all_books_summary()
+    # json_response = db.get_all_books_from_materialized_view()
+    # print("\nAll Books Summary (from materialized view):")
+    # print(json_response)
     
-    db.create_materialized_view_user_borrowing_history()
-    user_id = 1
-    json_response = db.get_user_borrowing_history(user_id)
-    print(f"\nUser Borrowing History for User ID {user_id}:")
-    print(json_response)
+    # db.create_materialized_view_user_borrowing_history()
+    # user_id = 1
+    # json_response = db.get_user_borrowing_history(user_id)
+    # print(f"\nUser Borrowing History for User ID {user_id}:")
+    # print(json_response)
     
-    db.create_materialized_view_fines_report()
-    json_response = db.get_fines_report()
-    print("\nFines Report (from materialized view):")
-    print(json_response)
+    # db.create_materialized_view_fines_report()
+    # json_response = db.get_fines_report()
+    # print("\nFines Report (from materialized view):")
+    # print(json_response)
+    
+    
+    # db.create_after_book_issue_trigger()
+    # print("Trigger for book issue created successfully!")
+    # db.create_after_book_return_trigger()
+    # print("Trigger for book return created successfully!")
+    # db.create_books_audit_log_trigger()
+    # print("Books audit log trigger created successfully!")
+    # db.create_new_book_trigger()
+    # print("New book trigger created successfully!")
+    
+    
+    # db.create_stored_procedure_insert_book()
+    # print("Stored procedure 'insert_book' created successfully!")
+    # title = "Physics for Beginners"
+    # author = 1
+    # category = 1
+    # isbn = "1234567890"
+    # total_copies = 5
+    # response = db.stored_procedure_insert_book(title, author, category, isbn, total_copies)
+    # print(response)
+    
+    db.create_stored_procedure_delete_book()
+    print("Stored procedure 'delete_book' created successfully!")
+    book_id_to_delete = 6
+    response = db.stored_procedure_delete_book(book_id_to_delete)
+    print(response)
+    
+    
+    
