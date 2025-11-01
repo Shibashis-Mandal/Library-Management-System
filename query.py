@@ -3,6 +3,7 @@ import json
 import datetime
 import decimal
 from datetime import date, datetime as dt
+from psycopg2.extras import RealDictCursor
 
 
 class LibraryDatabaseManager:
@@ -58,6 +59,7 @@ class LibraryDatabaseManager:
         );
         """
     # PART 1: MATERIALIZED VIEWS
+    
 
     def create_materialized_view_popular_books(self):
         sql = """
@@ -522,6 +524,42 @@ class LibraryDatabaseManager:
         END;
         $$;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'return_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating stored procedure: {e}")
+        finally:
+            release_connection(conn)
+            
+    def stored_procedure_issue_book(self, student_id, copy_id, issue_date):
+        sql = "CALL issue_book(%s, %s, %s);"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (student_id, copy_id, issue_date))
+                conn.commit()
+            return {"status": "success", "message": f"Book issued successfully to student ID {student_id}!"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
+            
+    def stored_procedure_return_book(self, issue_id, return_date, fine):
+        sql = "CALL return_book(%s, %s, %s);"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql, (issue_id, return_date, fine))
+                conn.commit()
+            return {"status": "success", "message": f"Book returned successfully for issue ID {issue_id}!"}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
 
 
     # PART 4: BACKUP AND RESTORE
@@ -531,6 +569,16 @@ class LibraryDatabaseManager:
         CREATE TABLE IF NOT EXISTS books_backup AS
         TABLE books WITH NO DATA;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Backup table 'books_backup' created successfully!")
+        except Exception as e:
+            print(f"Error creating backup table: {e}")
+        finally:
+            release_connection(conn)
 
     def create_books_restore_procedure(self):
         sql = """
@@ -544,6 +592,16 @@ class LibraryDatabaseManager:
         END;
         $$;
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'restore_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating stored procedure: {e}")
+        finally:
+            release_connection(conn)
 
     def create_backup_audit_log_table(self):
         sql = """
@@ -555,30 +613,145 @@ class LibraryDatabaseManager:
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Backup audit log table 'backup_audit_log' created successfully!")
+        except Exception as e:
+            print(f"Error creating backup audit log table: {e}")
+        finally:
+            release_connection(conn)
 
     def insert_backup_audit_log(self, action_type, table_name, record_id):
         sql = f"""
         INSERT INTO backup_audit_log(action_type, table_name, record_id)
         VALUES ('{action_type}', '{table_name}', {record_id});
         """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Backup audit log entry created successfully!")
+        except Exception as e:
+            print(f"Error creating backup audit log entry: {e}")
+        finally:
+            release_connection(conn)
 
     def get_backup_audit_logs(self):
         sql = """SELECT * FROM backup_audit_log ORDER BY timestamp DESC;"""
-
+        conn = get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql)
+                result = cur.fetchall()
+                clean_rows = [dict(row) for row in result]
+                return {
+                    "status": "success",
+                    "data": clean_rows
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        finally:
+            release_connection(conn)
 
     # PART 5: SEARCH AND VIEWS
+    
+    def execute_query(self, sql, params=None, fetch=False):
+        conn = get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute(sql, params)
+                if fetch:
+                    result = cur.fetchall() 
+                    clean_rows = [dict(row) for row in result]
+                    return clean_rows
+                else:
+                    conn.commit()
+                    return None
+        except Exception as e:
+            print(f"Database error: {e}")
+            return None
+        finally:
+            release_connection(conn)
 
-    def view_all_books(self):
-        sql = """SELECT * FROM books ORDER BY title;"""
+            
 
     def view_all_issues(self):
         sql = """SELECT * FROM issues ORDER BY issue_date DESC;"""
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No issues found"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+        
+        
+
+    
+
 
     def view_all_returns(self):
         sql = """SELECT * FROM returns ORDER BY return_date DESC;"""
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No returns found"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        
 
     def search_books_by_title(self, title):
+        
         sql = f"""SELECT * FROM books WHERE LOWER(title) LIKE LOWER('%{title}%');"""
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No books found with that title"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
 
     def search_books_by_author(self, author_name):
         sql = f"""
@@ -586,6 +759,24 @@ class LibraryDatabaseManager:
         JOIN author a ON b.author = a.author_id
         WHERE LOWER(a.name) LIKE LOWER('%{author_name}%');
         """
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No books found by that author"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
 
     def search_books_by_category(self, category_name):
         sql = f"""
@@ -593,6 +784,24 @@ class LibraryDatabaseManager:
         JOIN categories c ON b.category = c.category_id
         WHERE LOWER(c.name) LIKE LOWER('%{category_name}%');
         """
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No books found in that category"
+                }
+        except Exception as e:  
+            return {
+                "status": "error",
+                "message": str(e)
+            }
 
 
 if __name__ == "__main__":
@@ -610,18 +819,18 @@ if __name__ == "__main__":
     # print(json_response)
     
     # db.create_materialized_view_all_books_summary()
-    # json_response = db.get_all_books_from_materialized_view()
+    #json_response = db.get_all_books_from_materialized_view()
     # print("\nAll Books Summary (from materialized view):")
     # print(json_response)
     
     # db.create_materialized_view_user_borrowing_history()
     # user_id = 1
-    # json_response = db.get_user_borrowing_history(user_id)
+    #json_response = db.get_user_borrowing_history(user_id)
     # print(f"\nUser Borrowing History for User ID {user_id}:")
     # print(json_response)
     
     # db.create_materialized_view_fines_report()
-    # json_response = db.get_fines_report()
+    #json_response = db.get_fines_report()
     # print("\nFines Report (from materialized view):")
     # print(json_response)
     
@@ -646,11 +855,70 @@ if __name__ == "__main__":
     # response = db.stored_procedure_insert_book(title, author, category, isbn, total_copies)
     # print(response)
     
-    db.create_stored_procedure_delete_book()
-    print("Stored procedure 'delete_book' created successfully!")
-    book_id_to_delete = 6
-    response = db.stored_procedure_delete_book(book_id_to_delete)
-    print(response)
+    # db.create_stored_procedure_delete_book()
+    # print("Stored procedure 'delete_book' created successfully!")
+    # book_id_to_delete = 6
+    # response = db.stored_procedure_delete_book(book_id_to_delete)
+    # print(response)
+    
+    # db.create_stored_procedure_issue_book()
+    # print("Stored procedure 'issue_book' created successfully!")
+    # student_id = 1
+    # copy_id = 1
+    # issue_date = dt.now().date()
+    # response = db.stored_procedure_issue_book(student_id, copy_id, issue_date)
+    # print(response)
+    # db.create_stored_procedure_return_book()
+    # print("Stored procedure 'return_book' created successfully!")
+    # issue_id = 1
+    # return_date = dt.now().date()
+    # fine = 0.00
+    # response = db.stored_procedure_return_book(issue_id, return_date, fine)
+    # print(response)
+    
+    # view_all_issues = db.view_all_issues()
+    # print("\nAll Issues:")
+    # print(view_all_issues)
+    
+    # view_all_returns = db.view_all_returns()
+    # print("\nAll Returns:")
+    # print(view_all_returns)
+    
+    # search_title = "The Hobbit"
+    # search_books_by_title = db.search_books_by_title(search_title)
+    # print(f"\nSearch Books by Title '{search_title}':")
+    # print(search_books_by_title)
+
+    # search_author = "J.K. Rowling"
+    # search_books_by_author = db.search_books_by_author(search_author)
+    # print(f"\nSearch Books by Author '{search_author}':")
+    # print(search_books_by_author)
+    
+    # search_category = "Fantasy"
+    # search_books_by_category = db.search_books_by_category(search_category)
+    # print(f"\nSearch Books by Category '{search_category}':")   
+    # print(search_books_by_category)
+    
+    
+    # db.create_books_backup_table()
+    # print("Backup table 'books_backup' created successfully!")
+    # db.create_books_restore_procedure()
+    # print("Stored procedure 'restore_book' created successfully!")
+    # action_type = "INSERT"
+    # table_name = "books"
+    # record_id = 1
+    # db.insert_backup_audit_log(action_type, table_name, record_id)
+    # print("Backup audit log entry created successfully!")
+    # backup_logs = db.get_backup_audit_logs()
+    # print("\nBackup Audit Logs:")
+    # print(backup_logs)
+    
+    
+    
+    
+    
+   
+    
     
     
     
