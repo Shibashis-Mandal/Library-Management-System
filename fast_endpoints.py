@@ -19,7 +19,15 @@ async def get_popular_books():
     except Exception as e:
         logger.error(f"Error fetching popular books: {e}")
         return {"error": "Could not fetch popular books"}
-
+    
+@app.get("/overdue-transactions/")
+async def get_overdue_transactions():
+    try:
+        transactions = library_manager.get_materialized_view_overdue_transactions()
+        return transactions
+    except Exception as e:
+        logger.error(f"Error fetching overdue transactions: {e}")
+        return {"error": "Could not fetch overdue transactions"}
 
 if __name__ == "__main__":
     import uvicorn
