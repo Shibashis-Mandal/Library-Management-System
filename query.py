@@ -1,194 +1,315 @@
 from connection import get_connection, release_connection, init_connection_pool, close_connection_pool
 
-
 class LibraryDatabaseManager:
-    
-
     def __init__(self):
-        
         init_connection_pool()
         print("Connection pool initialized.")
 
-    
-    # MATERIALIZED VIEWS
-    
+
+    # PART 1: MATERIALIZED VIEWS
 
     def create_materialized_view_popular_books(self):
-        """Creates a materialized view for popular books based on the number of issues."""
-        pass
+        sql = """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_popular_books AS
+        SELECT 
+            b.book_id,
+            b.title,
+            COUNT(i.issue_id) AS total_issues
+        FROM books b
+        JOIN book_copies bc ON b.book_id = bc.book_id
+        JOIN issues i ON bc.copy_id = i.copy_id
+        GROUP BY b.book_id, b.title
+        ORDER BY total_issues DESC;
+        """
 
     def get_materialized_view_popular_books(self):
-        """Retrieves data from the popular books materialized view."""
-        pass
+        sql = """SELECT * FROM mv_popular_books ORDER BY total_issues DESC;"""
 
     def create_materialized_view_overdue_transactions(self):
-        """Creates a materialized view for overdue transactions."""
-        pass
+        sql = """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_overdue_transactions AS
+        SELECT 
+            i.issue_id,
+            s.name AS student_name,
+            b.title AS book_title,
+            i.issue_date,
+            r.return_date,
+            (r.return_date - i.issue_date) AS days_held,
+            CASE 
+                WHEN (r.return_date - i.issue_date) > 14 THEN 'Overdue'
+                ELSE 'On Time'
+            END AS status
+        FROM issues i
+        JOIN returns r ON i.issue_id = r.issue_id
+        JOIN book_copies bc ON i.copy_id = bc.copy_id
+        JOIN books b ON bc.book_id = b.book_id
+        JOIN student s ON i.student_id = s.student_id;
+        """
 
     def get_materialized_view_overdue_transactions(self):
-        """Retrieves data from the overdue transactions materialized view."""
-        pass
+        sql = """SELECT * FROM mv_overdue_transactions WHERE status = 'Overdue';"""
 
     def create_materialized_view_all_books_summary(self):
-        """Creates a materialized view that summarizes all books with their authors and categories."""
-        pass
+        sql = """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_all_books_summary AS
+        SELECT 
+            b.book_id,
+            b.title,
+            a.name AS author_name,
+            c.name AS category_name,
+            b.isbn,
+            b.total_copies
+        FROM books b
+        JOIN author a ON b.author = a.author_id
+        JOIN categories c ON b.category = c.category_id;
+        """
 
     def get_all_books_from_materialized_view(self):
-        """Fetches all books from vw_all_books_summary view."""
-        pass
+        sql = """SELECT * FROM mv_all_books_summary;"""
 
     def create_materialized_view_user_borrowing_history(self):
-        """Creates a materialized view for user borrowing history."""
-        pass
+        sql = """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_user_borrowing_history AS
+        SELECT 
+            s.student_id,
+            s.name AS student_name,
+            b.title AS book_title,
+            i.issue_date,
+            r.return_date,
+            r.fine_amount
+        FROM student s
+        JOIN issues i ON s.student_id = i.student_id
+        JOIN book_copies bc ON i.copy_id = bc.copy_id
+        JOIN books b ON bc.book_id = b.book_id
+        LEFT JOIN returns r ON i.issue_id = r.issue_id;
+        """
 
     def get_user_borrowing_history(self, user_id):
-        """Retrieves borrowing history for a specific user."""
-        pass
+        sql = f"""SELECT * FROM mv_user_borrowing_history WHERE student_id = {user_id};"""
 
     def create_materialized_view_fines_report(self):
-        """Creates a materialized view showing total fines collected and overdue details."""
-        pass
+        sql = """
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_fines_report AS
+        SELECT 
+            s.name AS student_name,
+            SUM(r.fine_amount) AS total_fines
+        FROM returns r
+        JOIN issues i ON r.issue_id = i.issue_id
+        JOIN student s ON i.student_id = s.student_id
+        GROUP BY s.name;
+        """
 
     def get_fines_report(self):
-        """Retrieves fine collection report from the materialized view."""
-        pass
+        sql = """SELECT * FROM mv_fines_report ORDER BY total_fines DESC;"""
 
-    
-    # TRIGGERS
-    
+
+    # PART 2: TRIGGERS
 
     def create_after_book_issue_trigger(self):
-        """Creates trigger that updates Book_Copies status to 'Issued' after a book is issued."""
-        pass
+        sql = """
+        CREATE OR REPLACE FUNCTION update_status_after_issue()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE book_copies SET status = 'issue' WHERE copy_id = NEW.copy_id;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        CREATE TRIGGER trg_after_issue
+        AFTER INSERT ON issues
+        FOR EACH ROW
+        EXECUTE FUNCTION update_status_after_issue();
+        """
 
     def create_after_book_return_trigger(self):
-        """Creates trigger that updates Book_Copies status to 'Available' after a book is returned."""
-        pass
+        sql = """
+        CREATE OR REPLACE FUNCTION update_status_after_return()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE book_copies SET status = 'available'
+            WHERE copy_id = (SELECT copy_id FROM issues WHERE issue_id = NEW.issue_id);
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        CREATE TRIGGER trg_after_return
+        AFTER INSERT ON returns
+        FOR EACH ROW
+        EXECUTE FUNCTION update_status_after_return();
+        """
 
     def create_books_audit_log_trigger(self):
-        """Creates trigger that logs any UPDATE or DELETE on Books into Books_Audit_Log."""
-        pass
+        sql = """
+        CREATE TABLE IF NOT EXISTS books_audit_log (
+            log_id SERIAL PRIMARY KEY,
+            book_id INT,
+            action_type VARCHAR(20),
+            action_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE OR REPLACE FUNCTION log_books_changes()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            INSERT INTO books_audit_log(book_id, action_type)
+            VALUES (OLD.book_id, TG_OP);
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        CREATE TRIGGER trg_books_audit
+        AFTER UPDATE OR DELETE ON books
+        FOR EACH ROW
+        EXECUTE FUNCTION log_books_changes();
+        """
 
     def create_new_book_trigger(self):
-        """Creates trigger that fires when a new book is inserted to log or auto-assign category."""
-        pass
+        sql = """
+        CREATE OR REPLACE FUNCTION log_new_book()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            INSERT INTO books_audit_log(book_id, action_type)
+            VALUES (NEW.book_id, 'INSERT');
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
 
-    def create_user_category_trigger(self):
-        """Creates trigger to auto-create missing users or categories when new book/user added."""
-        pass
+        CREATE TRIGGER trg_new_book
+        AFTER INSERT ON books
+        FOR EACH ROW
+        EXECUTE FUNCTION log_new_book();
+        """
 
-    def create_books_backup_trigger(self):
-        """Creates trigger to backup book data before update or delete."""
-        pass
 
-    
-    # STORED PROCEDURES
-    
+    # PART 3: STORED PROCEDURES
 
     def create_stored_procedure_insert_book(self):
-        """Creates a stored procedure to insert a new book into the Books table."""
-        pass
-
-    def call_stored_procedure_insert_book(self, title, author_name, category_name, published_year):
-        """Calls the stored procedure to insert a new book."""
-        pass
-
-    def create_stored_procedure_update_book(self):
-        """Creates a stored procedure to update book details (title, author, category, etc.)."""
-        pass
-
-    def call_stored_procedure_update_book(self, book_id, new_title, new_author, new_category, new_year):
-        """Calls the stored procedure to update book details."""
-        pass
+        sql = """
+        CREATE OR REPLACE PROCEDURE insert_book(
+            p_title VARCHAR,
+            p_author INT,
+            p_category INT,
+            p_isbn VARCHAR,
+            p_total_copies INT
+        )
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            INSERT INTO books(title, author, category, isbn, total_copies)
+            VALUES (p_title, p_author, p_category, p_isbn, p_total_copies);
+        END;
+        $$;
+        """
 
     def create_stored_procedure_delete_book(self):
-        """Creates a stored procedure to safely delete a book (moves to backup before delete)."""
-        pass
-
-    def call_stored_procedure_delete_book(self, book_id):
-        """Calls the stored procedure to delete a book."""
-        pass
+        sql = """
+        CREATE OR REPLACE PROCEDURE delete_book(p_book_id INT)
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            INSERT INTO books_backup SELECT * FROM books WHERE book_id = p_book_id;
+            DELETE FROM books WHERE book_id = p_book_id;
+        END;
+        $$;
+        """
 
     def create_stored_procedure_issue_book(self):
-        """Creates a stored procedure to issue a book to a user and update book status."""
-        pass
-
-    def call_stored_procedure_issue_book(self, book_id, user_id, issue_date, due_date):
-        """Calls the stored procedure to issue a book."""
-        pass
+        sql = """
+        CREATE OR REPLACE PROCEDURE issue_book(p_student_id INT, p_copy_id INT, p_issue_date DATE)
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            INSERT INTO issues(student_id, copy_id, issue_date, returned)
+            VALUES (p_student_id, p_copy_id, p_issue_date, 'no');
+            UPDATE book_copies SET status = 'issue' WHERE copy_id = p_copy_id;
+        END;
+        $$;
+        """
 
     def create_stored_procedure_return_book(self):
-        """Creates a stored procedure to handle book return and update status."""
-        pass
+        sql = """
+        CREATE OR REPLACE PROCEDURE return_book(p_issue_id INT, p_return_date DATE, p_fine NUMERIC)
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            INSERT INTO returns(issue_id, return_date, fine_amount)
+            VALUES (p_issue_id, p_return_date, p_fine);
+            UPDATE issues SET returned = 'yes' WHERE issue_id = p_issue_id;
+        END;
+        $$;
+        """
 
-    def call_stored_procedure_return_book(self, transaction_id, return_date):
-        """Calls the stored procedure to mark book as returned."""
-        pass
 
-    def create_stored_procedure_check_overdue_books(self):
-        """Creates a stored procedure to check overdue books and calculate fines."""
-        pass
-
-    def call_stored_procedure_check_overdue_books(self):
-        """Calls the stored procedure to fetch overdue books."""
-        pass
-
-    # BACKUP AND RESTORE
-    
+    # PART 4: BACKUP AND RESTORE
 
     def create_books_backup_table(self):
-        """Creates a backup table for Books to store deleted or updated records."""
-        pass
+        sql = """
+        CREATE TABLE IF NOT EXISTS books_backup AS
+        TABLE books WITH NO DATA;
+        """
 
     def create_books_restore_procedure(self):
-        """Creates a stored procedure to restore data from Books_Backup."""
-        pass
-
-    def call_books_restore_procedure(self, book_id):
-        """Calls the stored procedure to restore a specific book from backup."""
-        pass
-
-    def backup_books_manual(self):
-        """Performs a manual backup of all records from Books into Books_Backup."""
-        pass
+        sql = """
+        CREATE OR REPLACE PROCEDURE restore_book(p_book_id INT)
+        LANGUAGE plpgsql
+        AS $$
+        BEGIN
+            INSERT INTO books
+            SELECT * FROM books_backup WHERE book_id = p_book_id
+            ON CONFLICT (book_id) DO NOTHING;
+        END;
+        $$;
+        """
 
     def create_backup_audit_log_table(self):
-        """Creates a table to log all backup and restore actions."""
-        pass
+        sql = """
+        CREATE TABLE IF NOT EXISTS backup_audit_log (
+            log_id SERIAL PRIMARY KEY,
+            action_type VARCHAR(20),
+            table_name VARCHAR(50),
+            record_id INT,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
 
-    def insert_backup_audit_log(self, action_type, table_name, record_id, timestamp):
-        """Inserts a record into Backup_Audit_Log after each backup/restore."""
-        pass
+    def insert_backup_audit_log(self, action_type, table_name, record_id):
+        sql = f"""
+        INSERT INTO backup_audit_log(action_type, table_name, record_id)
+        VALUES ('{action_type}', '{table_name}', {record_id});
+        """
 
     def get_backup_audit_logs(self):
-        """Retrieves all backup and restore logs."""
-        pass
+        sql = """SELECT * FROM backup_audit_log ORDER BY timestamp DESC;"""
 
-    
 
-    def test_connection_with_roles(self):        
-        conn = None
-        try:
-            conn = get_connection()
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM roles;")
-            rows = cur.fetchall()
-            if rows:
-                print("\nRoles Table Data:")
-                for row in rows:
-                    print(row)
-            else:
-                print("\nNo data found in roles table.")
-        except Exception as e:
-            print(f"Query failed: {e}")
-        finally:
-            if conn:
-                release_connection(conn)
-            print("Query complete.")
+    # PART 5: SEARCH AND VIEWS
 
+    def view_all_books(self):
+        sql = """SELECT * FROM books ORDER BY title;"""
+
+    def view_all_issues(self):
+        sql = """SELECT * FROM issues ORDER BY issue_date DESC;"""
+
+    def view_all_returns(self):
+        sql = """SELECT * FROM returns ORDER BY return_date DESC;"""
+
+    def search_books_by_title(self, title):
+        sql = f"""SELECT * FROM books WHERE LOWER(title) LIKE LOWER('%{title}%');"""
+
+    def search_books_by_author(self, author_name):
+        sql = f"""
+        SELECT b.* FROM books b
+        JOIN author a ON b.author = a.author_id
+        WHERE LOWER(a.name) LIKE LOWER('%{author_name}%');
+        """
+
+    def search_books_by_category(self, category_name):
+        sql = f"""
+        SELECT b.* FROM books b
+        JOIN categories c ON b.category = c.category_id
+        WHERE LOWER(c.name) LIKE LOWER('%{category_name}%');
+        """
 
 
 if __name__ == "__main__":
     db = LibraryDatabaseManager()
-    db.test_connection_with_roles()
     close_connection_pool()
