@@ -48,7 +48,7 @@ class LibraryDatabaseManager:
             data = [dict(zip(columns, row)) for row in rows]
 
             
-            return json.dumps({"status": "success", "data": data}, indent=4)
+            return {"status": "success", "data": data}
         except Exception as e:
             return {"status": "error", "message": str(e)}
         finally:
@@ -564,18 +564,18 @@ if __name__ == "__main__":
     # print(json_response)
     
     # db.create_materialized_view_all_books_summary()
-    # json_response = db.get_all_books_from_materialized_view()
+    json_response = db.get_all_books_from_materialized_view()
     # print("\nAll Books Summary (from materialized view):")
     # print(json_response)
     
     # db.create_materialized_view_user_borrowing_history()
     # user_id = 1
-    # json_response = db.get_user_borrowing_history(user_id)
+    json_response = db.get_user_borrowing_history(user_id)
     # print(f"\nUser Borrowing History for User ID {user_id}:")
     # print(json_response)
     
     # db.create_materialized_view_fines_report()
-    # json_response = db.get_fines_report()
+    json_response = db.get_fines_report()
     # print("\nFines Report (from materialized view):")
     # print(json_response)
     
