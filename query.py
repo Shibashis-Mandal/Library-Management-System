@@ -48,9 +48,9 @@ class LibraryDatabaseManager:
             data = [dict(zip(columns, row)) for row in rows]
 
             
-            return json.dumps({"status": "success", "data": data}, indent=4)
+            return {"status": "success", "data": data}
         except Exception as e:
-            return json.dumps({"status": "error", "message": str(e)}, indent=4)
+            return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
 
