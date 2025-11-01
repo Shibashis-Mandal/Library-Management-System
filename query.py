@@ -6,6 +6,52 @@ class LibraryDatabaseManager:
         print("Connection pool initialized.")
 
 
+    # PART 0: TABLE CREATION
+
+    def create_tables(self):
+        sql = """
+        CREATE TABLE IF NOT EXISTS students (
+            student_id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            department VARCHAR(100),
+            email VARCHAR(100) UNIQUE,
+            phone VARCHAR(15)
+        );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            category_id SERIAL PRIMARY KEY,
+            category_name VARCHAR(100) UNIQUE NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS books (
+            book_id SERIAL PRIMARY KEY,
+            title VARCHAR(200) NOT NULL,
+            author VARCHAR(150) NOT NULL,
+            category_id INT REFERENCES categories(category_id) ON DELETE SET NULL,
+            total_copies INT NOT NULL CHECK (total_copies >= 0)
+        );
+
+        CREATE TABLE IF NOT EXISTS book_copies (
+            copy_id SERIAL PRIMARY KEY,
+            book_id INT REFERENCES books(book_id) ON DELETE CASCADE,
+            is_available BOOLEAN DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS issues (
+            issue_id SERIAL PRIMARY KEY,
+            student_id INT REFERENCES students(student_id) ON DELETE CASCADE,
+            copy_id INT REFERENCES book_copies(copy_id) ON DELETE CASCADE,
+            issue_date DATE DEFAULT CURRENT_DATE,
+            returned VARCHAR(3) CHECK (returned IN ('yes','no')) DEFAULT 'no'
+        );
+
+        CREATE TABLE IF NOT EXISTS returns (
+            return_id SERIAL PRIMARY KEY,
+            issue_id INT REFERENCES issues(issue_id) ON DELETE CASCADE,
+            return_date DATE DEFAULT CURRENT_DATE,
+            fine_amount DECIMAL(10,2) DEFAULT 0.00
+        );
+        """
     # PART 1: MATERIALIZED VIEWS
 
     def create_materialized_view_popular_books(self):
