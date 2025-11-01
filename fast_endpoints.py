@@ -1,33 +1,116 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query
 from query import LibraryDatabaseManager
-import json
+from datetime import date
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Backend for Library Management System")
+app = FastAPI(title="Library Management System Backend")
 
 library_manager = LibraryDatabaseManager()
 
 @app.get("/popular-books/")
 async def get_popular_books():
+    """Fetch popular books from materialized view."""
     try:
-        books = library_manager.get_materialized_view_popular_books()
-        return books
+        result = library_manager.get_materialized_view_popular_books()
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
     except Exception as e:
         logger.error(f"Error fetching popular books: {e}")
-        return {"error": "Could not fetch popular books"}
-    
+        raise HTTPException(status_code=500, detail="Could not fetch popular books.")
+
+
 @app.get("/overdue-transactions/")
 async def get_overdue_transactions():
+    """Fetch overdue transactions from materialized view."""
     try:
-        transactions = library_manager.get_materialized_view_overdue_transactions()
-        return transactions
+        result = library_manager.get_materialized_view_overdue_transactions()
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
     except Exception as e:
         logger.error(f"Error fetching overdue transactions: {e}")
-        return {"error": "Could not fetch overdue transactions"}
+        raise HTTPException(status_code=500, detail="Could not fetch overdue transactions.")
+
+
+# @app.get("/all-books/")
+# async def get_all_books_summary():
+#     """Fetch all books summary from materialized view."""
+#     try:
+#         # library_manager.create_materialized_view_all_books_summary()
+#         result = library_manager.view_all_books()
+#         if result["status"] == "error":
+#             raise HTTPException(status_code=500, detail=result["message"])
+#         return result
+#     except Exception as e:
+#         logger.error(f"Error fetching all books summary: {e}")
+#         raise HTTPException(status_code=500, detail="Could not fetch all books summary.")
+
+
+@app.get("/user-borrowing-history/{user_id}")
+async def get_user_borrowing_history(user_id: int):
+    """Fetch a specific user's borrowing history."""
+    try:
+        result = library_manager.get_user_borrowing_history(user_id)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching borrowing history for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch user borrowing history.")
+
+
+@app.get("/fines-report/")
+async def get_fines_report():
+    """Fetch total fines per student from materialized view."""
+    try:
+        result = library_manager.get_fines_report()
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching fines report: {e}")
+        raise HTTPException(status_code=500, detail="Could not fetch fines report.")
+
+
+@app.post("/books/")
+async def insert_book(
+    title: str = Query(..., description="Book title"),
+    author: int = Query(..., description="Author ID"),
+    category: int = Query(..., description="Category ID"),
+    isbn: str = Query(..., description="ISBN number"),
+    total_copies: int = Query(..., description="Total copies of the book")
+):
+    """Insert a new book using stored procedure."""
+    try:
+        result = library_manager.stored_procedure_insert_book(title, author, category, isbn, total_copies)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error inserting book: {e}")
+        raise HTTPException(status_code=500, detail="Could not insert book.")
+
+
+@app.delete("/books/{book_id}")
+async def delete_book(book_id: int):
+    """Delete a book by ID using stored procedure."""
+    try:
+        result = library_manager.stored_procedure_delete_book(book_id)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error deleting book {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Could not delete book.")
+
+
+@app.get("/")
+async def root():
+    return {"message": "Library Management System API is running!"}
 
 if __name__ == "__main__":
     import uvicorn
