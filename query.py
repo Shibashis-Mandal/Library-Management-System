@@ -455,7 +455,6 @@ class LibraryDatabaseManager:
         finally:
             release_connection(conn)
 
-
     # PART 3: STORED PROCEDURES
 
     def create_stored_procedure_insert_book(self):
@@ -608,6 +607,136 @@ class LibraryDatabaseManager:
             return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
+            
+    def create_issue_procedure(self):
+            sql = """
+            CREATE OR REPLACE PROCEDURE issue_book(p_book_id INT, p_student_id INT)
+            LANGUAGE plpgsql
+            AS $$
+            DECLARE
+                v_copy_id INT;
+            BEGIN
+                SELECT copy_id INTO v_copy_id
+                FROM book_copies
+                WHERE book_id = p_book_id AND status = 'available'
+                LIMIT 1;
+
+                IF v_copy_id IS NULL THEN
+                    RAISE NOTICE 'No available copies for this book.';
+                    RETURN;
+                END IF;
+
+                INSERT INTO issues (student_id, copy_id, issue_date)
+                VALUES (p_student_id, v_copy_id, CURRENT_DATE);
+
+                UPDATE books
+                SET total_copies = total_copies - 1
+                WHERE book_id = p_book_id;
+
+                UPDATE book_copies
+                SET status = 'issue'
+                WHERE copy_id = v_copy_id;
+
+                RAISE NOTICE 'Book (ID: %) issued successfully to student (ID: %).', p_book_id, p_student_id;
+            END;
+            $$;
+            """
+            conn = get_connection()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(sql)
+                    conn.commit()
+                print("Procedure 'issue_book' created successfully!")
+            except Exception as e:
+                print(f"Error creating procedure: {e}")
+            finally:
+                release_connection(conn)
+
+    def issue_book(self, book_id, student_id):
+        sql = f"CALL issue_book({book_id}, {student_id});"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print(f"Book {book_id} issued successfully to student {student_id}.")
+        except Exception as e:
+            print(f"Error issuing book: {e}")
+        finally:
+            release_connection(conn)
+            
+    def create_procedure_insert_return(self):
+        sql = """
+        CREATE OR REPLACE PROCEDURE insert_return_and_update_book(
+            p_book_id INT,
+            p_student_id INT
+        )
+        LANGUAGE plpgsql
+        AS $$
+        DECLARE
+            v_issue_id INT;
+            v_copy_id INT;
+        BEGIN
+            -- Find the issue record (that is not yet returned)
+            SELECT issue_id, copy_id INTO v_issue_id, v_copy_id
+            FROM issues
+            WHERE student_id = p_student_id
+            AND copy_id IN (SELECT copy_id FROM book_copies WHERE book_id = p_book_id)
+            AND returned = 'no'
+            LIMIT 1;
+
+            IF v_issue_id IS NULL THEN
+                RAISE EXCEPTION 'No active issue found for Student ID: %, Book ID: %', p_student_id, p_book_id;
+            END IF;
+
+            -- Insert into returns table
+            INSERT INTO returns (issue_id, return_date, fine_amount)
+            VALUES (v_issue_id, CURRENT_DATE, 0);
+
+            -- Mark the issue as returned
+            UPDATE issues
+            SET returned = 'yes'
+            WHERE issue_id = v_issue_id;
+
+            -- Mark the copy as available again
+            UPDATE book_copies
+            SET status = 'available'
+            WHERE copy_id = v_copy_id;
+
+            -- Increase the total copies in books table
+            UPDATE books
+            SET total_copies = total_copies + 1
+            WHERE book_id = p_book_id;
+
+            RAISE NOTICE 'Book returned successfully for Student ID: %, Book ID: %', p_student_id, p_book_id;
+        END;
+        $$;
+        """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print("Stored procedure 'insert_return_and_update_book' created successfully!")
+        except Exception as e:
+            print(f"Error creating procedure: {e}")
+        finally:
+            conn.close()
+            
+            
+    def insert_return_and_update_book(self, book_id, student_id):
+        sql = f"CALL insert_return_and_update_book({book_id}, {student_id});"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print(f"Book {book_id} returned successfully by student {student_id}.")
+        except Exception as e:
+            print(f"Error returning book: {e}")
+        finally:
+            release_connection(conn)
+
 
 
     # PART 4: BACKUP AND RESTORE
@@ -989,6 +1118,17 @@ if __name__ == "__main__":
     # print("\nBackup Audit Logs:")
     # print(backup_logs)
     
+    # db.create_issue_procedure()
+    # print("Procedure 'issue_book' created successfully!")
+    # book_id = 1
+    # student_id = 2
+    # db.issue_book(book_id, student_id)
+    
+    # db.create_procedure_insert_return()
+    # print("Procedure 'insert_return_and_update_book' created successfully!")
+    # book_id = 4
+    # student_id = 4
+    # db.insert_return_and_update_book(book_id, student_id)
     
     
     
