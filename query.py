@@ -16,7 +16,7 @@ class LibraryDatabaseManager:
 
     def create_tables(self):
         sql = """
-        CREATE TABLE IF NOT EXISTS students (
+        CREATE TABLE IF NOT EXISTS student (
             student_id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
             department VARCHAR(100),
@@ -288,17 +288,20 @@ class LibraryDatabaseManager:
         finally:
             release_connection(conn)
 
-    def create_materialized_view_fines_report(self):
+    def create_materialized_view_issued_report(self):
         sql = """
-        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_fines_report AS
+        CREATE MATERIALIZED VIEW IF NOT EXISTS mv_issued_report AS
         SELECT 
             s.student_id,
             s.name AS student_name,
+            i.issue_id,
+            i.copy_id,
             SUM(r.fine_amount) AS total_fines
         FROM returns r
         JOIN issues i ON r.issue_id = i.issue_id
         JOIN student s ON i.student_id = s.student_id
-        GROUP BY s.student_id, s.name;
+        GROUP BY s.student_id, s.name, i.issue_id, i.copy_id;
+
 
         """
         conn = get_connection()
@@ -309,14 +312,14 @@ class LibraryDatabaseManager:
         finally:
             release_connection(conn)
 
-    def get_fines_report(self):
+    def get_issued_report(self):
         # refresh view before querying
         try:
-            self.refresh_materialized_view('mv_fines_report')
+            self.refresh_materialized_view('mv_issued_report')
         except Exception:
             pass
 
-        sql = """SELECT * FROM mv_fines_report ORDER BY total_fines DESC;"""
+        sql = """SELECT * FROM mv_issued_report ORDER BY total_fines DESC;"""
         conn = get_connection()
     
         try:

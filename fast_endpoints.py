@@ -75,12 +75,12 @@ async def get_user_borrowing_history(user_id: int):
         raise HTTPException(status_code=500, detail="Could not fetch user borrowing history.")
 
 
-@app.get("/fines-report/")
+@app.get("/return-report/")
 async def get_fines_report():
     """Fetch total fines per student from materialized view."""
     try:
-        library_manager.create_materialized_view_fines_report()
-        result = library_manager.get_fines_report()
+        library_manager.create_materialized_view_issued_report()
+        result = library_manager.get_issued_report()
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])
         return result
@@ -107,6 +107,22 @@ async def insert_book(
         logger.error(f"Error inserting book: {e}")
         raise HTTPException(status_code=500, detail="Could not insert book.")
 
+@app.post("/add_issue/")
+async def add_issue(
+    student_id: int = Query(..., description="Student ID"),
+    book_id: int = Query(..., description="Book ID"),
+    issue_date: str = Query(..., description="Issue Date"),
+    due_date: str = Query(..., description="Due Date")
+):
+    """Add a new book issue."""
+    try:
+        result = library_manager.issue_book(book_id, student_id)
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error adding issue: {e}")
+        raise HTTPException(status_code=500, detail="Could not add issue.")
 
 @app.delete("/books/{book_id}")
 async def delete_book(book_id: int):
