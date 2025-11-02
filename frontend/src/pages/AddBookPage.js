@@ -10,20 +10,6 @@ const AddBookPage = () => {
     
     // Authors table fields (will be created/linked)
     authorName: '',
-    authorBio: '',
-    
-    // Book-Copies table fields
-    purchaseDate: new Date().toISOString().split('T')[0],
-    shelfLocation: '',
-    
-    // Additional fields for UI
-    publisher: '',
-    publicationYear: '',
-    description: '',
-    language: 'English',
-    edition: '',
-    pages: '',
-    price: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -40,19 +26,12 @@ const AddBookPage = () => {
     'History',
     'Economics',
     'Management',
+    'Fiction',
+    'Non-Fiction',
+    'Self-Help',
     'Other'
   ];
 
-  const languages = [
-    'English',
-    'Hindi', 
-    'Bengali',
-    'Tamil',
-    'Telugu',
-    'Marathi',
-    'Gujarati',
-    'Other'
-  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -62,75 +41,64 @@ const AddBookPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage({ type: '', text: '' });
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setMessage({ type: '', text: '' });
 
-    try {
-      // Validate required fields according to DB schema
-      const requiredFields = ['title', 'authorName', 'isbn', 'category', 'totalCopies', 'shelfLocation'];
-      const missingFields = requiredFields.filter(field => !formData[field].trim());
-      
-      if (missingFields.length > 0) {
-        throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
-      }
-
-      // Validate ISBN format (basic check)
-      const isbnPattern = /^(978|979)?[0-9]{9}[0-9X]$/;
-      if (!isbnPattern.test(formData.isbn.replace(/[-\s]/g, ''))) {
-        throw new Error('Please enter a valid ISBN (10 or 13 digits)');
-      }
-
-      // Validate copies count
-      if (parseInt(formData.totalCopies) < 1) {
-        throw new Error('Total copies must be at least 1');
-      }
-
-      // Simulate API call - replace with actual backend integration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock success response
-      setMessage({ 
-        type: 'success', 
-        text: `Book "${formData.title}" successfully added to library with ${formData.totalCopies} ${parseInt(formData.totalCopies) === 1 ? 'copy' : 'copies'}!` 
-      });
-      
-      // Reset form
-      setFormData({
-        // Books table fields
-        title: '',
-        isbn: '',
-        category: '',
-        totalCopies: '1',
-        
-        // Authors table fields
-        authorName: '',
-        authorBio: '',
-        
-        // Book-Copies table fields
-        purchaseDate: new Date().toISOString().split('T')[0],
-        shelfLocation: '',
-        
-        // Additional fields
-        publisher: '',
-        publicationYear: '',
-        description: '',
-        language: 'English',
-        edition: '',
-        pages: '',
-        price: ''
-      });
-
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: ` ${error.message}` 
-      });
-    } finally {
-      setIsSubmitting(false);
+  try {
+    const requiredFields = ['title', 'authorName', 'isbn', 'category', 'totalCopies'];
+    const missingFields = requiredFields.filter(field => !formData[field]?.trim());
+    if (missingFields.length > 0) {
+      throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
     }
-  };
+
+    const isbnPattern = /^(978|979)?[0-9]{9}[0-9X]$/;
+    if (!isbnPattern.test(formData.isbn.replace(/[-\s]/g, ''))) {
+      throw new Error('Please enter a valid ISBN (10 or 13 digits)');
+    }
+
+    if (parseInt(formData.totalCopies) < 1) {
+      throw new Error('Total copies must be at least 1');
+    }
+
+    // Make API call to FastAPI backend
+    const apiUrl = `http://localhost:8000/books/${encodeURIComponent(formData.title)}/${encodeURIComponent(formData.authorName)}/${encodeURIComponent(formData.category)}/${encodeURIComponent(formData.isbn)}/${encodeURIComponent(formData.totalCopies)}`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to add book: ${errorText}`);
+    }
+
+    const result = await response.json();
+
+    setMessage({
+      type: 'success',
+      text: `Book "${formData.title}" successfully added! ID: ${result.book_id || 'N/A'}`
+    });
+
+    setFormData({
+      title: '',
+      isbn: '',
+      category: '',
+      totalCopies: '1',
+      authorName: '',
+    });
+
+  } catch (error) {
+    setMessage({
+      type: 'error',
+      text: error.message || 'Failed to add book. Please try again.'
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const generateBookId = () => {
     const randomId = 'BOOK' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -225,98 +193,6 @@ const AddBookPage = () => {
                       ))}
                     </select>
                   </div>
-
-                  {/* Publisher */}
-                  <div>
-                    <label htmlFor="publisher" className="block text-sm font-medium text-gray-700 mb-2">
-                       Publisher
-                    </label>
-                    <input
-                      type="text"
-                      id="publisher"
-                      name="publisher"
-                      value={formData.publisher}
-                      onChange={handleInputChange}
-                      placeholder="Enter publisher name"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                {/* Additional Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Publication Year */}
-                  <div>
-                    <label htmlFor="publicationYear" className="block text-sm font-medium text-gray-700 mb-2">
-                       Publication Year
-                    </label>
-                    <input
-                      type="number"
-                      id="publicationYear"
-                      name="publicationYear"
-                      value={formData.publicationYear}
-                      onChange={handleInputChange}
-                      placeholder="2024"
-                      min="1800"
-                      max={new Date().getFullYear()}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Edition */}
-                  <div>
-                    <label htmlFor="edition" className="block text-sm font-medium text-gray-700 mb-2">
-                       Edition
-                    </label>
-                    <input
-                      type="text"
-                      id="edition"
-                      name="edition"
-                      value={formData.edition}
-                      onChange={handleInputChange}
-                      placeholder="1st, 2nd, etc."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Pages */}
-                  <div>
-                    <label htmlFor="pages" className="block text-sm font-medium text-gray-700 mb-2">
-                       Pages
-                    </label>
-                    <input
-                      type="number"
-                      id="pages"
-                      name="pages"
-                      value={formData.pages}
-                      onChange={handleInputChange}
-                      placeholder="300"
-                      min="1"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Language */}
-                  <div>
-                    <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-2">
-                       Language
-                    </label>
-                    <select
-                      id="language"
-                      name="language"
-                      value={formData.language}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    >
-                      {languages.map(lang => (
-                        <option key={lang} value={lang}>{lang}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Total Copies */}
                   <div>
                     <label htmlFor="totalCopies" className="block text-sm font-medium text-gray-700 mb-2">
                       Total Copies <span className="text-red-500">*</span>
@@ -333,99 +209,9 @@ const AddBookPage = () => {
                       required
                     />
                   </div>
-
-                  {/* Price */}
-                  <div>
-                    <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                      Price (₹)
-                    </label>
-                    <input
-                      type="number"
-                      id="price"
-                      name="price"
-                      value={formData.price}
-                      onChange={handleInputChange}
-                      placeholder="500"
-                      min="0"
-                      step="0.01"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    />
-                  </div>
+                 
                 </div>
-
-                {/* Database Schema Specific Fields */}
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Author & Copy Details</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    {/* Author Bio */}
-                    <div className="md:col-span-2">
-                      <label htmlFor="authorBio" className="block text-sm font-medium text-gray-700 mb-2">
-                         Author Biography
-                      </label>
-                      <textarea
-                        id="authorBio"
-                        name="authorBio"
-                        value={formData.authorBio}
-                        onChange={handleInputChange}
-                        rows={3}
-                        placeholder="Brief biography of the author (optional)"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                      />
-                    </div>
-
-                    {/* Purchase Date */}
-                    <div>
-                      <label htmlFor="purchaseDate" className="block text-sm font-medium text-gray-700 mb-2">
-                         Purchase Date <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="date"
-                        id="purchaseDate"
-                        name="purchaseDate"
-                        value={formData.purchaseDate}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        required
-                      />
-                    </div>
-
-                    {/* Shelf Location */}
-                    <div>
-                      <label htmlFor="shelfLocation" className="block text-sm font-medium text-gray-700 mb-2">
-                        Shelf Location <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="shelfLocation"
-                        name="shelfLocation"
-                        value={formData.shelfLocation}
-                        onChange={handleInputChange}
-                        placeholder="e.g., A-01-05, Section-A-Shelf-1"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                    placeholder="Brief description of the book (optional)"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  />
-                </div>
-
-                {/* Submit Button */}
+                
                 <button
                   type="submit"
                   disabled={isSubmitting}
