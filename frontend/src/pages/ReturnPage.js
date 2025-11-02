@@ -153,7 +153,7 @@ const ReturnPage = () => {
                   onClick={handleLookupIssue}
                   className="px-4 py-3 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white rounded-lg font-medium transition-all duration-200"
                 >
-                  🔍 Lookup
+                  Lookup
                 </button>
               </div>
             </div>
@@ -260,7 +260,7 @@ const ReturnPage = () => {
           <div className="space-y-6">
             {/* Return Guidelines */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Return Guidelines</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Return Guidelines</h3>
               <ul className="space-y-3 text-sm text-gray-600">
                 <li className="flex items-start space-x-2">
                   <span className="text-green-500 mt-1">•</span>
@@ -304,31 +304,7 @@ const ReturnPage = () => {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">⚡ Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                   View Pending Returns
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                   Check Overdue Books
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  Generate Return Report
-                </button>
-              </div>
-            </div>
-
-            {/* Backend Integration */}
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-purple-800 mb-2">🔧 Backend Integration</h3>
-              <p className="text-purple-700 text-sm">
-                Ready for API endpoint: <code className="bg-purple-100 px-2 py-1 rounded">POST /api/return</code>
-                <br />
-                Updates book status and calculates fines automatically
-              </p>
-            </div>
+            
           </div>
         </div>
       </div>

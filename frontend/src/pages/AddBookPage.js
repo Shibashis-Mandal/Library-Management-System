@@ -93,7 +93,7 @@ const AddBookPage = () => {
       // Mock success response
       setMessage({ 
         type: 'success', 
-        text: `✅ Book "${formData.title}" successfully added to library with ${formData.totalCopies} ${parseInt(formData.totalCopies) === 1 ? 'copy' : 'copies'}!` 
+        text: `Book "${formData.title}" successfully added to library with ${formData.totalCopies} ${parseInt(formData.totalCopies) === 1 ? 'copy' : 'copies'}!` 
       });
       
       // Reset form
@@ -142,7 +142,7 @@ const AddBookPage = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">📚 Add New Book</h1>
+    <h1 className="text-3xl font-bold text-gray-900 mb-2">Add New Book</h1>
           <p className="text-gray-600">Add a new book to the library collection</p>
         </div>
 
@@ -337,7 +337,7 @@ const AddBookPage = () => {
                   {/* Price */}
                   <div>
                     <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">
-                      💰 Price (₹)
+                      Price (₹)
                     </label>
                     <input
                       type="number"
@@ -355,7 +355,7 @@ const AddBookPage = () => {
 
                 {/* Database Schema Specific Fields */}
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">📋 Author & Copy Details</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Author & Copy Details</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     {/* Author Bio */}
@@ -412,7 +412,7 @@ const AddBookPage = () => {
                 {/* Description */}
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    📝 Description
+                    Description
                   </label>
                   <textarea
                     id="description"
@@ -435,7 +435,7 @@ const AddBookPage = () => {
                       : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg transform hover:-translate-y-0.5'
                   }`}
                 >
-                  {isSubmitting ? '⏳ Adding Book...' : '📚 Add Book to Library'}
+                  {isSubmitting ? 'Adding Book...' : 'Add Book to Library'}
                 </button>
               </form>
 
@@ -489,32 +489,6 @@ const AddBookPage = () => {
                   <span>Multiple copies create separate entries</span>
                 </li>
               </ul>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">⚡ Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  📚 View All Books
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  🔍 Search ISBN Database
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  📊 Import from CSV
-                </button>
-              </div>
-            </div>
-
-            {/* Backend Integration */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-green-800 mb-2">🔧 Backend Integration</h3>
-              <p className="text-green-700 text-sm">
-                Ready for API endpoint: <code className="bg-green-100 px-2 py-1 rounded">POST /api/books</code>
-                <br />
-                Will create book and copy entries automatically
-              </p>
             </div>
           </div>
         </div>

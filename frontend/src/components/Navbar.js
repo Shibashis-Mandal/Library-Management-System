@@ -25,17 +25,17 @@ const Navbar = ({ userRole, onLogout }) => {
   const getNavigationLinks = () => {
     if (userRole === 'Admin') {
       return [
-        { path: '/books', label: 'Books', icon: '📚' },
-        { path: '/add-book', label: 'Add Book', icon: '➕' },
-        { path: '/issue', label: 'Issue Book', icon: '📤' },
-        { path: '/return', label: 'Return Book', icon: '📥' },
-        { path: '/reports', label: 'Reports', icon: '📊' }
+        { path: '/books', label: 'Books', icon: '' },
+        { path: '/add-book', label: 'Add Book', icon: '+' },
+        { path: '/issue', label: 'Issue Book', icon: '' },
+        { path: '/return', label: 'Return Book', icon: '' },
+        // { path: '/reports', label: 'Reports', icon: '' }
       ];
-    } else if (userRole === 'Student') {
-      return [
-        { path: '/books', label: 'Books', icon: '📚' }
-      ];
-    }
+  // } else if (userRole === 'Student') {
+  //   return [
+  //     { path: '/books', label: 'Books', icon: '' }
+  //   ];
+  }
     return [];
   };
 

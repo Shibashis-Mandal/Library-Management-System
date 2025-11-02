@@ -76,7 +76,7 @@ const ReportsPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">📊 Reports & Analytics</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reports & Analytics</h1>
           <p className="text-gray-600">Library statistics and performance insights</p>
         </div>
 
@@ -85,37 +85,37 @@ const ReportsPage = () => {
           <StatCard
             title="Total Books"
             value={reportData.stats.totalBooks.toLocaleString()}
-            icon="📚"
+            icon=""
             color="blue"
           />
           <StatCard
             title="Available"
             value={reportData.stats.availableBooks.toLocaleString()}
-            icon="✅"
+            icon=""
             color="green"
           />
           <StatCard
             title="Issued"
             value={reportData.stats.issuedBooks.toLocaleString()}
-            icon="📤"
+            icon=""
             color="yellow"
           />
           <StatCard
             title="Students"
             value={reportData.stats.totalStudents.toLocaleString()}
-            icon="👨‍🎓"
+            icon=""
             color="purple"
           />
           <StatCard
             title="Overdue"
             value={reportData.stats.overdueCount.toLocaleString()}
-            icon="⏰"
+            icon=""
             color="red"
           />
           <StatCard
             title="Total Fines"
             value={`₹${reportData.stats.totalFines.toLocaleString()}`}
-            icon="💰"
+            icon=""
             color="teal"
           />
         </div>
@@ -124,7 +124,7 @@ const ReportsPage = () => {
           {/* Top Borrowed Books */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">📚 Top Borrowed Books</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Top Borrowed Books</h2>
               <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 View All →
               </button>
@@ -149,7 +149,7 @@ const ReportsPage = () => {
           {/* Most Active Students */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">👨‍🎓 Most Active Students</h2>
+              <h2 className="text-xl font-semibold text-gray-900">Most Active Students</h2>
               <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 View All →
               </button>
@@ -174,7 +174,7 @@ const ReportsPage = () => {
         {/* Overdue Books */}
         <div className="mt-8 bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">⏰ Overdue Books</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Overdue Books</h2>
             <button className="text-red-600 hover:text-red-800 text-sm font-medium">
               Send Reminders →
             </button>
@@ -235,29 +235,29 @@ const ReportsPage = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">✅ No overdue books found</p>
+              <p className="text-gray-500">No overdue books found</p>
             </div>
           )}
         </div>
 
         {/* Export Options */}
         <div className="mt-8 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">📥 Export Reports</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Reports</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <button className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2">
-              <span>📊</span>
+              <span></span>
               <span>Export CSV</span>
             </button>
             <button className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2">
-              <span>📄</span>
+              <span></span>
               <span>Export PDF</span>
             </button>
             <button className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2">
-              <span>📧</span>
+              <span></span>
               <span>Email Report</span>
             </button>
             <button className="bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-3 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2">
-              <span>🔄</span>
+              <span></span>
               <span>Refresh Data</span>
             </button>
           </div>
@@ -265,7 +265,7 @@ const ReportsPage = () => {
 
         {/* Backend Integration Note */}
         <div className="mt-8 bg-indigo-50 border border-indigo-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-indigo-800 mb-2">🔧 Materialized View Integration</h3>
+          <h3 className="text-lg font-semibold text-indigo-800 mb-2">Materialized View Integration</h3>
           <p className="text-indigo-700 text-sm">
             This page will connect to materialized views from your PostgreSQL database:
           </p>

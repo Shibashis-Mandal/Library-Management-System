@@ -13,14 +13,14 @@ const BooksPage = ({ userRole }) => {
     // test connection
     fetch("http://localhost:8000/")
       .then(res => res.json())
-      .then(data => console.log("✅ BACKEND CONNECTED:", data))
-      .catch(err => console.error("❌ CONNECTION ERROR:", err));
+      .then(data => console.log("BACKEND CONNECTED:", data))
+      .catch(err => console.error("CONNECTION ERROR:", err));
 
     // fetch books
     fetch("http://localhost:8000/all-books/")
       .then(res => res.json())
       .then(data => {
-        console.log("📚 BOOKS DATA:", data);
+        console.log("BOOKS DATA:", data);
         if (data.status === "success" && Array.isArray(data.data)) {
           setSampleBooks(data.data);
         } else if (Array.isArray(data)) {
@@ -32,7 +32,7 @@ const BooksPage = ({ userRole }) => {
         }
       })
       .catch(err => {
-        console.error("❌ ERROR FETCHING BOOKS:", err);
+        console.error("ERROR FETCHING BOOKS:", err);
         setError("Failed to load books");
       })
       .finally(() => setLoading(false));
@@ -103,7 +103,7 @@ const BooksPage = ({ userRole }) => {
                   onClick={() => navigate('/add-book')}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 flex items-center space-x-2"
                 >
-                  <span>➕</span>
+                  <span>+</span>
                   <span>Add New Book</span>
                 </button>
               </div>
@@ -115,7 +115,7 @@ const BooksPage = ({ userRole }) => {
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="search" className="block text-base pb-3 font-medium text-gray-700 mb-2">
                 Search Books
               </label>
               <input
@@ -128,7 +128,7 @@ const BooksPage = ({ userRole }) => {
               />
             </div>
 
-            <div className="sm:w-48">
+            {/* <div className="sm:w-48">
               <label htmlFor="filter" className="block text-sm font-medium text-gray-700 mb-2">
                 Filter by Status
               </label>
@@ -142,7 +142,7 @@ const BooksPage = ({ userRole }) => {
                 <option value="available">Available Only</option>
                 <option value="issued">Issued Only</option>
               </select>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -176,7 +176,7 @@ const BooksPage = ({ userRole }) => {
                     className="hover:bg-gray-50 transition-colors duration-200"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-base font-medium text-gray-900">
                         {book.title}
                       </div>
                       <div className="text-sm text-gray-500">
