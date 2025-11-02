@@ -142,13 +142,30 @@ async def return_book(
 async def delete_book(book_id: int):
     """Delete a book by ID using stored procedure."""
     try:
-        result = library_manager.stored_procedure_delete_book(book_id)
+        result = library_manager.delete_book(book_id)
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])
         return result
     except Exception as e:
         logger.error(f"Error deleting book {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Could not delete book.")
+    
+@app.post("/books/{title}/{author_name}/{category_name}/{isbn}/{total_copies}")
+async def insert_book(title: str, author_name: str, category_name: str, isbn: str, total_copies: int):
+    """Insert a new book using path variables."""
+    try:
+        result = library_manager.insert_book(
+            title, author_name, category_name, isbn, total_copies
+        )
+
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["message"])
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error inserting book '{title}': {e}")
+        raise HTTPException(status_code=500, detail="Could not insert book.")
 
 
 # @app.get("/categories")

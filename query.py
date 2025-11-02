@@ -434,29 +434,161 @@ class LibraryDatabaseManager:
 
     def create_new_book_trigger(self):
         sql = """
-        CREATE OR REPLACE FUNCTION log_new_book()
+        CREATE OR REPLACE FUNCTION handle_book_insert()
         RETURNS TRIGGER AS $$
+        DECLARE
+            author_name TEXT;
+            category_name TEXT;
         BEGIN
-            INSERT INTO books_audit_log(book_id, action_type)
-            VALUES (NEW.book_id, 'INSERT');
+            -- Fetch the author and category names using their IDs
+            SELECT name INTO author_name FROM author WHERE author_id = NEW.author;
+            SELECT name INTO category_name FROM categories WHERE category_id = NEW.category;
+
+            -- Optional: log the action
+            RAISE NOTICE 'Book inserted: %, Author: %, Category: %', NEW.title, author_name, category_name;
+
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
 
-        CREATE TRIGGER trg_new_book
+        DROP TRIGGER IF EXISTS after_book_insert ON books;
+
+        CREATE TRIGGER after_book_insert
         AFTER INSERT ON books
         FOR EACH ROW
-        EXECUTE FUNCTION log_new_book();
+        EXECUTE FUNCTION handle_book_insert();
         """
         conn = get_connection() 
         try:
             with conn.cursor() as cur:
                 cur.execute(sql)
                 conn.commit()
+                print("New book trigger created successfully.")
         except Exception as e:
             print(f"Error creating new book trigger: {e}")
         finally:
             release_connection(conn)
+
+            
+    
+        
+        
+    def insert_book(self, title, author_name, category_name, isbn, total_copies):
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                
+                cur.execute("SELECT author_id FROM author WHERE LOWER(name)=LOWER(%s)", (author_name,))
+                result = cur.fetchone()
+                if result:
+                    author_id = result[0]
+                else:
+                    cur.execute("INSERT INTO author (name, bio) VALUES (%s, 'Bio not provided') RETURNING author_id;", (author_name,))
+                    author_id = cur.fetchone()[0]
+
+                
+                cur.execute("SELECT category_id FROM categories WHERE LOWER(name)=LOWER(%s)", (category_name,))
+                result = cur.fetchone()
+                if result:
+                    category_id = result[0]
+                else:
+                    cur.execute("INSERT INTO categories (name) VALUES (%s) RETURNING category_id;", (category_name,))
+                    category_id = cur.fetchone()[0]
+
+                
+                cur.execute("""
+                    INSERT INTO books (title, author, category, isbn, total_copies)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (title, author_id, category_id, isbn, total_copies))
+                
+                conn.commit()
+                return {"status": "success", "message": f"Book '{title}' inserted successfully!"}
+        except Exception as e:
+            conn.rollback()
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
+
+    def create_book_delete_trigger(self):
+        sql = """
+        CREATE OR REPLACE FUNCTION handle_book_delete()
+        RETURNS TRIGGER AS $$
+        DECLARE
+            author_books_count INT;
+            category_books_count INT;
+        BEGIN
+            -- Count remaining books by the same author
+            SELECT COUNT(*) INTO author_books_count
+            FROM books
+            WHERE author = OLD.author;
+
+            -- If no other books exist for the author, delete the author
+            IF author_books_count = 0 THEN
+                DELETE FROM author WHERE author_id = OLD.author;
+            END IF;
+
+            -- Count remaining books in the same category
+            SELECT COUNT(*) INTO category_books_count
+            FROM books
+            WHERE category = OLD.category;
+
+            -- If no other books exist for the category, delete the category
+            IF category_books_count = 0 THEN
+                DELETE FROM categories WHERE category_id = OLD.category;
+            END IF;
+
+            -- Optional: Log the deletion
+            RAISE NOTICE 'Book deleted: %, Author ID: %, Category ID: %', OLD.title, OLD.author, OLD.category;
+
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+
+        DROP TRIGGER IF EXISTS after_book_delete ON books;
+
+        CREATE TRIGGER after_book_delete
+        AFTER DELETE ON books
+        FOR EACH ROW
+        EXECUTE FUNCTION handle_book_delete();
+        """
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+                print("Book delete trigger created successfully.")
+        except Exception as e:
+            print(f"Error creating book delete trigger: {e}")
+        finally:
+            release_connection(conn)
+
+
+    def delete_book(self, book_id):
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Check if book exists by ID
+                cur.execute("SELECT book_id FROM books WHERE book_id = %s;", (book_id,))
+                result = cur.fetchone()
+
+                if not result:
+                    return {"status": "error", "message": f"No book found with ID {book_id}."}
+
+                # Delete book by ID
+                cur.execute("DELETE FROM books WHERE book_id = %s;", (book_id,))
+                conn.commit()
+
+                return {"status": "success", "message": f"Book with ID {book_id} deleted successfully."}
+
+        except Exception as e:
+            conn.rollback()
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
+
+
+
+    
 
     # PART 3: STORED PROCEDURES
 
@@ -1148,11 +1280,27 @@ if __name__ == "__main__":
     # student_id = 1
     # db.insert_return_and_update_book(copy_id,student_id)
 
+    # db.create_new_book_trigger()
+    
+    # result = db.insert_book(
+    #     title="Life of a Scientist",
+    #     author_name="Dr. S. Bose",
+    #     category_name="Poetry",
+    #     isbn="99988877766651",
+    #     total_copies=5
+    # )
 
+    # print(result)
+    # print("Book inserted successfully!")
+    
+    # db.create_book_delete_trigger()
 
+    # result = db.delete_book(book_id=54)
+
+    # print(result)
     
-   
-    
-    
-    
-    
+    # db.create_book_delete_trigger()
+
+    # result = db.delete_book(book_id=56)
+
+    # print(result)
