@@ -296,7 +296,8 @@ class LibraryDatabaseManager:
             s.name AS student_name,
             i.issue_id,
             i.copy_id,
-            SUM(r.fine_amount) AS total_fines
+            SUM(r.fine_amount) AS total_fines,
+            i.returned
         FROM returns r
         JOIN issues i ON r.issue_id = i.issue_id
         JOIN student s ON i.student_id = s.student_id

@@ -75,7 +75,7 @@ async def get_user_borrowing_history(user_id: int):
         raise HTTPException(status_code=500, detail="Could not fetch user borrowing history.")
 
 
-@app.get("/return-report/")
+@app.get("/issue-report/")
 async def get_fines_report():
     """Fetch total fines per student from materialized view."""
     try:
