@@ -108,6 +108,38 @@ async def delete_book(book_id: int):
         raise HTTPException(status_code=500, detail="Could not delete book.")
 
 
+@app.get("/categories")
+async def get_categories():
+    sql = "SELECT category_id, category_name FROM categories ORDER BY category_name;"
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            rows = cur.fetchall()
+            data = [{"id": r[0], "name": r[1]} for r in rows]
+        return {"status": "success", "data": data}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    finally:
+        release_connection(conn)
+
+
+@app.get("/authors")
+async def get_authors():
+    sql = "SELECT DISTINCT author FROM books ORDER BY author;"
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            rows = cur.fetchall()
+            data = [{"name": r[0]} for r in rows]
+        return {"status": "success", "data": data}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+    finally:
+        release_connection(conn)
+
+
 @app.get("/")
 async def root():
     return {"message": "Library Management System API is running!"}
