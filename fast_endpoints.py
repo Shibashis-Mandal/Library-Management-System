@@ -110,13 +110,12 @@ async def insert_book(
 @app.post("/add_issue/")
 async def add_issue(
     student_id: int = Query(..., description="Student ID"),
-    book_id: int = Query(..., description="Book ID"),
+    copy_id: int = Query(..., description="Copy ID"),
     issue_date: str = Query(..., description="Issue Date"),
-    due_date: str = Query(..., description="Due Date")
 ):
     """Add a new book issue."""
     try:
-        result = library_manager.issue_book(book_id, student_id)
+        result = library_manager.issue_book(copy_id, student_id, copy_id, issue_date)
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])
         return result

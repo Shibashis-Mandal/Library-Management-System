@@ -655,14 +655,14 @@ class LibraryDatabaseManager:
             finally:
                 release_connection(conn)
 
-    def issue_book(self, book_id, student_id):
-        sql = f"CALL issue_book({book_id}, {student_id});"
+    def issue_book(self, copy_id, student_id):
+        sql = f"CALL issue_book({copy_id}, {student_id});"
         conn = get_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute(sql)
                 conn.commit()
-            print(f"Book {book_id} issued successfully to student {student_id}.")
+            print(f"Book {copy_id} issued successfully to student {student_id}.")
         except Exception as e:
             print(f"Error issuing book: {e}")
         finally:
