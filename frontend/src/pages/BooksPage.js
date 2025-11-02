@@ -6,6 +6,15 @@ const BooksPage = ({ userRole }) => {
   const [filterBy, setFilterBy] = useState('all');
   const navigate = useNavigate();
 
+
+  useEffect(() => {
+  fetch("http://localhost:8000/")
+    .then(res => res.json())
+    .then(data => console.log("BACKEND CONNECTED", data))
+    .catch(err => console.log("ERROR", err));
+}, []);
+
+
   // Sample data - matches your database schema (Books table with related data)
   const sampleBooks = [
     {
