@@ -680,6 +680,39 @@ class LibraryDatabaseManager:
         finally:
             release_connection(conn)
 
+    def view_all_books(self):
+        sql = """
+        SELECT 
+            b.book_id,
+            b.title,
+            a.name AS author_name,
+            c.name AS category_name,
+            b.isbn,
+            b.total_copies
+        FROM books b
+        JOIN author a ON b.author = a.author_id
+        JOIN categories c ON b.category = c.category_id
+        ORDER BY b.title;
+        """
+        try:
+            rows = self.execute_query(sql, fetch=True)
+            if rows:
+                return {
+                    "status": "success",
+                    "data": rows
+                }
+            else:
+                return {
+                    "status": "success",
+                    "data": [],
+                    "message": "No books found"
+                }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
             
 
     def view_all_issues(self):
@@ -702,11 +735,6 @@ class LibraryDatabaseManager:
                 "status": "error",
                 "message": str(e)
             }
-
-        
-        
-
-    
 
 
     def view_all_returns(self):
