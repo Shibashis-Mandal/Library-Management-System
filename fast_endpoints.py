@@ -114,7 +114,8 @@ async def add_issue(
 ):
     """Add a new book issue."""
     try:
-        result = library_manager.issue_book(copy_id, student_id, copy_id, issue_date)
+        #result = library_manager.issue_book(copy_id, student_id, copy_id, issue_date)
+        result = library_manager.issue_book(copy_id, student_id)
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])
         return result
@@ -123,7 +124,19 @@ async def add_issue(
         raise HTTPException(status_code=500, detail="Could not add issue.")
 
 @app.post("/return-book/")
-# async def return_book(
+async def return_book(
+    student_id: int = Query(..., description="Student ID"),
+    copy_id: int = Query(..., description="Copy ID"),
+):
+    """Return a book copy issued to a student."""
+    try:
+        result = library_manager.insert_return_and_update_book(copy_id, student_id)
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result["message"])
+        return result
+    except Exception as e:
+        logger.error(f"Error returning book: {e}")
+        raise HTTPException(status_code=500, detail="Could not return book.")
 
 @app.delete("/books/{book_id}")
 async def delete_book(book_id: int):
