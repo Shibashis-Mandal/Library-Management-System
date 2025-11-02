@@ -111,7 +111,6 @@ async def insert_book(
 async def add_issue(
     student_id: int = Query(..., description="Student ID"),
     copy_id: int = Query(..., description="Copy ID"),
-    issue_date: str = Query(..., description="Issue Date"),
 ):
     """Add a new book issue."""
     try:
@@ -122,6 +121,9 @@ async def add_issue(
     except Exception as e:
         logger.error(f"Error adding issue: {e}")
         raise HTTPException(status_code=500, detail="Could not add issue.")
+
+@app.post("/return-book/")
+# async def return_book(
 
 @app.delete("/books/{book_id}")
 async def delete_book(book_id: int):
