@@ -59,6 +59,21 @@ class LibraryDatabaseManager:
         );
         """
     # PART 1: MATERIALIZED VIEWS
+    def refresh_materialized_view(self, view_name: str):
+        sql = f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view_name};"
+        conn = get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                conn.commit()
+            print(f"Materialized view '{view_name}' refreshed successfully!")
+            return {"status": "success", "message": f"{view_name} refreshed successfully"}
+        except Exception as e:
+            print(f"Error refreshing materialized view {view_name}: {e}")
+            return {"status": "error", "message": str(e)}
+        finally:
+            release_connection(conn)
+
     
 
     def create_materialized_view_popular_books(self):
@@ -84,6 +99,13 @@ class LibraryDatabaseManager:
 
 
     def get_materialized_view_popular_books(self):
+        # ensure the materialized view is fresh before querying
+        try:
+            self.refresh_materialized_view('mv_popular_books')
+        except Exception:
+            # if refresh fails, continue to attempt to read the view
+            pass
+
         sql = "SELECT * FROM mv_popular_books ORDER BY total_issues DESC;"
         conn = get_connection()
         try:
@@ -135,6 +157,12 @@ class LibraryDatabaseManager:
             release_connection(conn) 
 
     def get_materialized_view_overdue_transactions(self):
+        # refresh view before querying
+        try:
+            self.refresh_materialized_view('mv_overdue_transactions')
+        except Exception:
+            pass
+
         sql = """SELECT * FROM mv_overdue_transactions WHERE status = 'Overdue';"""
         conn = get_connection() 
         try:
@@ -179,6 +207,12 @@ class LibraryDatabaseManager:
             release_connection(conn)
 
     def get_all_books_from_materialized_view(self):
+        # refresh view before querying
+        try:
+            self.refresh_materialized_view('mv_all_books_summary')
+        except Exception:
+            pass
+
         sql = """SELECT * FROM mv_all_books_summary;"""
         conn = get_connection()
         try:
@@ -224,6 +258,12 @@ class LibraryDatabaseManager:
         
 
     def get_user_borrowing_history(self, user_id):
+        # refresh view before querying
+        try:
+            self.refresh_materialized_view('mv_user_borrowing_history')
+        except Exception:
+            pass
+
         sql = f"""SELECT * FROM mv_user_borrowing_history WHERE student_id = {user_id};"""
         conn = get_connection()
         try:
@@ -252,12 +292,14 @@ class LibraryDatabaseManager:
         sql = """
         CREATE MATERIALIZED VIEW IF NOT EXISTS mv_fines_report AS
         SELECT 
+            s.student_id,
             s.name AS student_name,
             SUM(r.fine_amount) AS total_fines
         FROM returns r
         JOIN issues i ON r.issue_id = i.issue_id
         JOIN student s ON i.student_id = s.student_id
-        GROUP BY s.name;
+        GROUP BY s.student_id, s.name;
+
         """
         conn = get_connection()
         try:
@@ -268,6 +310,12 @@ class LibraryDatabaseManager:
             release_connection(conn)
 
     def get_fines_report(self):
+        # refresh view before querying
+        try:
+            self.refresh_materialized_view('mv_fines_report')
+        except Exception:
+            pass
+
         sql = """SELECT * FROM mv_fines_report ORDER BY total_fines DESC;"""
         conn = get_connection()
     

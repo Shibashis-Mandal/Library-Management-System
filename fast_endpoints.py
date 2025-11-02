@@ -79,6 +79,7 @@ async def get_user_borrowing_history(user_id: int):
 async def get_fines_report():
     """Fetch total fines per student from materialized view."""
     try:
+        library_manager.create_materialized_view_fines_report()
         result = library_manager.get_fines_report()
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])

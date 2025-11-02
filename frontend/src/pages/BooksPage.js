@@ -94,7 +94,7 @@ const BooksPage = ({ userRole }) => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">📚 Books Collection</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Books Collection</h1>
               <p className="text-gray-600">Browse and search through our library collection</p>
             </div>
             {userRole === 'Admin' && (
