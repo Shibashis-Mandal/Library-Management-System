@@ -1,143 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState } from 'react';
 
 const ReturnPage = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [fines, setFines] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredFines, setFilteredFines] = useState([]);
-
   const [formData, setFormData] = useState({
-    issueId: '',
-    returnDate: new Date().toISOString().split('T')[0],
-    fineAmount: 0
+    studentId: '',
+    copyId: ''
   });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    fetch('http://127.0.0.1:8000/return-report/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'success') {
-          setFines(data.data);
-          setFilteredFines(data.data);
-        }
-      })
-      .catch(err => console.error('Error fetching fines report:', err));
-  }, []);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-  const handleSearch = (e) => {
-    const term = e.target.value.toLowerCase();
-    setSearchTerm(term);
-    setFilteredFines(
-      fines.filter(
-        f =>
-          f.student_name.toLowerCase().includes(term) ||
-          f.student_id.toString().includes(term)
-      )
-    );
+  const handleReturn = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      if (!formData.studentId || !formData.copyId) {
+        throw new Error('Student ID and Copy ID are required');
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/return-book/?student_id=${formData.studentId}&copy_id=${formData.copyId}`,
+        {
+          method: 'POST'
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to process return');
+      }
+
+      const result = await response.json();
+
+      setMessage({
+        type: 'success',
+        text:
+          result.message ||
+          `Book copy ${formData.copyId} returned successfully for student ${formData.studentId}.`
+      });
+
+      setFormData({
+        studentId: '',
+        copyId: ''
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'An error occurred. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-6">
-      <div className="max-w-5xl mx-auto space-y-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <div className="max-w-lg mx-auto px-4 py-10">
+        <div className="bg-white rounded-xl shadow-md p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Return Book
+          </h1>
 
-        {/* Expandable Return Section */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex justify-between items-center p-6 cursor-pointer bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-          >
-            <h2 className="text-xl font-semibold flex items-center gap-2">Return Book</h2>
-            {isExpanded ? <ChevronUp /> : <ChevronDown />}
-          </div>
-
-          {isExpanded && (
-            <div className="p-6 border-t border-gray-200 animate-fadeIn">
-              <form className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Issue ID</label>
-                  <input
-                    type="text"
-                    name="issueId"
-                    value={formData.issueId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, issueId: e.target.value })
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Return Date</label>
-                  <input
-                    type="date"
-                    name="returnDate"
-                    value={formData.returnDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, returnDate: e.target.value })
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full py-3 rounded-lg text-white font-medium transition-all duration-200 ${
-                    isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg'
-                  }`}
-                >
-                  {isSubmitting ? 'Processing Return...' : 'Process Return'}
-                </button>
-              </form>
+          <form onSubmit={handleReturn} className="space-y-6">
+            {/* Student ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Student ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="studentId"
+                value={formData.studentId}
+                onChange={handleInputChange}
+                placeholder="Enter student ID"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
             </div>
-          )}
-        </div>
 
-        {/* Searchable Fines Report */}
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Issued Books</h2>
-
-          <input
-            type="text"
-            placeholder="Search by Student ID or Name"
-            value={searchTerm}
-            onChange={handleSearch}
-            className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-
-          {filteredFines.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-100">
-  <tr>
-    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Student ID</th>
-    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Student Name</th>
-    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Issue ID</th>
-    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Copy ID</th>
-    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Total Fines</th>
-  </tr>
-</thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-  {filteredFines.map((row) => (
-    <tr key={`${row.student_id}-${row.issue_id}-${row.copy_id}`} className="hover:bg-gray-50">
-      <td className="px-6 py-4 text-gray-800">{row.student_id}</td>
-      <td className="px-6 py-4 text-gray-800">{row.student_name}</td>
-      <td className="px-6 py-4 text-gray-800">{row.issue_id}</td>
-      <td className="px-6 py-4 text-gray-800">{row.copy_id}</td>
-      <td className="px-6 py-4 text-red-600 font-semibold">₹{row.total_fines}</td>
-    </tr>
-  ))}
-</tbody>
-
-              </table>
+            {/* Copy ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Copy ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="copyId"
+                value={formData.copyId}
+                onChange={handleInputChange}
+                placeholder="Enter copy ID"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                required
+              />
             </div>
-          ) : (
-            <p className="text-gray-600">No fines data found.</p>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-3 rounded-lg text-white font-medium transition-all duration-200 ${
+                isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:shadow-lg'
+              }`}
+            >
+              {isSubmitting ? 'Processing Return...' : 'Return Book'}
+            </button>
+          </form>
+
+          {/* Message */}
+          {message.text && (
+            <div
+              className={`mt-6 p-4 rounded-lg ${
+                message.type === 'success'
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-red-50 border border-red-200 text-red-800'
+              }`}
+            >
+              {message.text}
+            </div>
           )}
         </div>
       </div>

@@ -296,14 +296,14 @@ class LibraryDatabaseManager:
             s.name AS student_name,
             i.issue_id,
             i.copy_id,
-            SUM(r.fine_amount) AS total_fines,
+            COALESCE(SUM(r.fine_amount), 0) AS total_fines,
             i.returned
-        FROM returns r
-        JOIN issues i ON r.issue_id = i.issue_id
+        FROM issues i
         JOIN student s ON i.student_id = s.student_id
-        GROUP BY s.student_id, s.name, i.issue_id, i.copy_id;
+        LEFT JOIN returns r ON r.issue_id = i.issue_id
+        GROUP BY s.student_id, s.name, i.issue_id, i.copy_id, i.returned;
 
-
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_mv_issued_report_issue_id ON mv_issued_report(issue_id);
         """
         conn = get_connection()
         try:
@@ -320,7 +320,7 @@ class LibraryDatabaseManager:
         except Exception:
             pass
 
-        sql = """SELECT * FROM mv_issued_report ORDER BY total_fines DESC;"""
+        sql = """SELECT * FROM mv_issued_report """
         conn = get_connection()
     
         try:
