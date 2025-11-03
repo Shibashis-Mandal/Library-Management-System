@@ -451,6 +451,8 @@ class LibraryDatabaseManager:
                 INSERT INTO book_copies (book_id, status, shelf_location)
                 VALUES (NEW.book_id, 'available', 'AUTO');
             END LOOP;
+            INSERT INTO books_backup (book_id, title, author, category, isbn, total_copies, backup_date)
+            VALUES (NEW.book_id, NEW.title, NEW.author, NEW.category, NEW.isbn, NEW.total_copies, CURRENT_TIMESTAMP);
 
             RAISE NOTICE 'Book inserted: %, Author: %, Category: %, % copies created',
                 NEW.title, author_name, category_name, NEW.total_copies;
@@ -1295,19 +1297,19 @@ if __name__ == "__main__":
     # student_id = 1
     # db.insert_return_and_update_book(copy_id,student_id)
 
-    # db.create_new_book_trigger()
+    db.create_new_book_trigger()
 
-    # result = db.insert_book(
-    #     title="Algorithms Unlocked Advanced",
-    #     author_name="Thomas Cormen",
-    #     category_name="Computer Science",
-    #     isbn="97802625188028956",
-    #     total_copies=5,
-    #     shelf_location="A3-Row2"
-    # )
+    result = db.insert_book(
+        title="Algorithms Unlocked Advanced-II",
+        author_name="Thomas Cormen",
+        category_name="Computer Science",
+        isbn="9780262518802895690",
+        total_copies=5,
+        shelf_location="A3-Row2"
+    )
 
 
-    # print(result)
+    print(result)
     # print("Book inserted successfully!")
     
     # db.create_book_delete_trigger()
