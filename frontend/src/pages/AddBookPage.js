@@ -103,7 +103,7 @@ const AddBookPage = () => {
   
   //   useEffect(() => {
       const generateBookId = () => {
-          const randomId = 'BOOK' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+          const randomId =  Math.floor(Math.random() * 10000).toString().padStart(10, '0');
           return randomId;
         };
       // }, []);
@@ -265,7 +265,7 @@ const AddBookPage = () => {
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4"> Book ID Preview</h3>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-gray-600 mb-2">Generated Book ID:</p>
+                <p className="text-sm text-gray-600 mb-2">Generated ISBN:</p>
                 <p className="text-lg font-mono font-bold text-blue-800">{bookId}</p>
                 <p className="text-xs text-gray-500 mt-2">Auto-generated on save</p>
               </div>
