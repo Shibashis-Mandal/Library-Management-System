@@ -437,35 +437,25 @@ class LibraryDatabaseManager:
         sql = """
         CREATE OR REPLACE FUNCTION handle_book_insert()
         RETURNS TRIGGER AS $$
-        DECLARE
-            author_name TEXT;
-            category_name TEXT;
-            i INT;
         BEGIN
-            -- Fetch author and category names
-            SELECT name INTO author_name FROM author WHERE author_id = NEW.author;
-            SELECT name INTO category_name FROM categories WHERE category_id = NEW.category;
-
-            -- Create book copies with default shelf label
-            FOR i IN 1..NEW.total_copies LOOP
-                INSERT INTO book_copies (book_id, status, shelf_location)
-                VALUES (NEW.book_id, 'available', 'AUTO');
-            END LOOP;
+            -- Backup only, no copy creation
             INSERT INTO books_backup (book_id, title, author, category, isbn, total_copies, backup_date)
             VALUES (NEW.book_id, NEW.title, NEW.author, NEW.category, NEW.isbn, NEW.total_copies, CURRENT_TIMESTAMP);
 
-            RAISE NOTICE 'Book inserted: %, Author: %, Category: %, % copies created',
-                NEW.title, author_name, category_name, NEW.total_copies;
+            RAISE NOTICE 'Book inserted: %, Author ID: %, Category ID: %, Copies: %',
+                NEW.title, NEW.author, NEW.category, NEW.total_copies;
 
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
+
 
         DROP TRIGGER IF EXISTS after_book_insert ON books;
         CREATE TRIGGER after_book_insert
         AFTER INSERT ON books
         FOR EACH ROW
         EXECUTE FUNCTION handle_book_insert();
+
 
         """
         conn = get_connection() 
@@ -1176,8 +1166,8 @@ class LibraryDatabaseManager:
             }
 
 
-if __name__ == "__main__":
-    db = LibraryDatabaseManager()
+# if __name__ == "__main__":
+    # db = LibraryDatabaseManager()
     # db.create_materialized_view_popular_books()
     # print("Materialized view 'mv_popular_books' created successfully!")
     # json_response = db.get_materialized_view_popular_books()
@@ -1297,19 +1287,19 @@ if __name__ == "__main__":
     # student_id = 1
     # db.insert_return_and_update_book(copy_id,student_id)
 
-    db.create_new_book_trigger()
+    # db.create_new_book_trigger()
 
-    result = db.insert_book(
-        title="Algorithms Unlocked Advanced-II",
-        author_name="Thomas Cormen",
-        category_name="Computer Science",
-        isbn="9780262518802895690",
-        total_copies=5,
-        shelf_location="A3-Row2"
-    )
+    # result = db.insert_book(
+    #     title="Algorithms Unlocked Advanced-II",
+    #     author_name="Thomas Cormen",
+    #     category_name="Computer Science",
+    #     isbn="9780262518802895690",
+    #     total_copies=5,
+    #     shelf_location="A3-Row2"
+    # )
 
 
-    print(result)
+    # print(result)
     # print("Book inserted successfully!")
     
     # db.create_book_delete_trigger()

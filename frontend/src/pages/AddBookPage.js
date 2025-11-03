@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const AddBookPage = () => {
   const [formData, setFormData] = useState({
@@ -10,10 +10,11 @@ const AddBookPage = () => {
     
     // Authors table fields (will be created/linked)
     authorName: '',
+    shelfLocation: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-
+  
   const categories = [
     'Computer Science',
     'Programming',
@@ -31,8 +32,8 @@ const AddBookPage = () => {
     'Self-Help',
     'Other'
   ];
-
-
+  
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -40,71 +41,74 @@ const AddBookPage = () => {
       [name]: value
     }));
   };
-
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setMessage({ type: '', text: '' });
-
-  try {
-    const requiredFields = ['title', 'authorName', 'isbn', 'category', 'totalCopies'];
-    const missingFields = requiredFields.filter(field => !formData[field]?.trim());
-    if (missingFields.length > 0) {
-      throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage({ type: '', text: '' });
+    
+    try {
+      const requiredFields = ['title', 'authorName', 'isbn', 'category', 'totalCopies'];
+      const missingFields = requiredFields.filter(field => !formData[field]?.trim());
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      }
+      
+      const isbnPattern = /^(978|979)?[0-9]{9}[0-9X]$/;
+      if (!isbnPattern.test(formData.isbn.replace(/[-\s]/g, ''))) {
+        throw new Error('Please enter a valid ISBN (10 or 13 digits)');
+      }
+      
+      if (parseInt(formData.totalCopies) < 1) {
+        throw new Error('Total copies must be at least 1');
+      }
+      
+      // Make API call to FastAPI backend
+      const apiUrl = `http://localhost:8000/books/${encodeURIComponent(formData.title)}/${encodeURIComponent(formData.authorName)}/${encodeURIComponent(formData.category)}/${encodeURIComponent(formData.isbn)}/${encodeURIComponent(formData.totalCopies)}/${encodeURIComponent(formData.shelfLocation)}`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to add book: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      
+      setMessage({
+        type: 'success',
+        text: `Book "${formData.title}" successfully added! ID: ${result.book_id || 'N/A'}`
+      });
+      
+      setFormData({
+        title: '',
+        isbn: '',
+        category: '',
+        totalCopies: '1',
+        authorName: '',
+        shelfLocation: '',
+      });
+      
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.message || 'Failed to add book. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const isbnPattern = /^(978|979)?[0-9]{9}[0-9X]$/;
-    if (!isbnPattern.test(formData.isbn.replace(/[-\s]/g, ''))) {
-      throw new Error('Please enter a valid ISBN (10 or 13 digits)');
-    }
-
-    if (parseInt(formData.totalCopies) < 1) {
-      throw new Error('Total copies must be at least 1');
-    }
-
-    // Make API call to FastAPI backend
-    const apiUrl = `http://localhost:8000/books/${encodeURIComponent(formData.title)}/${encodeURIComponent(formData.authorName)}/${encodeURIComponent(formData.category)}/${encodeURIComponent(formData.isbn)}/${encodeURIComponent(formData.totalCopies)}`;
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to add book: ${errorText}`);
-    }
-
-    const result = await response.json();
-
-    setMessage({
-      type: 'success',
-      text: `Book "${formData.title}" successfully added! ID: ${result.book_id || 'N/A'}`
-    });
-
-    setFormData({
-      title: '',
-      isbn: '',
-      category: '',
-      totalCopies: '1',
-      authorName: '',
-    });
-
-  } catch (error) {
-    setMessage({
-      type: 'error',
-      text: error.message || 'Failed to add book. Please try again.'
-    });
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-
-
-  const generateBookId = () => {
-    const randomId = 'BOOK' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    return randomId;
   };
-
+  
+  //   useEffect(() => {
+      const generateBookId = () => {
+          const randomId = 'BOOK' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+          return randomId;
+        };
+      // }, []);
+      
+      const [bookId] = useState(() => generateBookId());
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -209,7 +213,24 @@ const AddBookPage = () => {
                       required
                     />
                   </div>
-                 
+                  
+                  {/* Shelf Location */}
+                  <div>
+                    <label htmlFor="shelfLocation" className="block text-sm font-medium text-gray-700 mb-2">
+                      Shelf Location <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      id="shelfLocation"
+                      name="shelfLocation"
+                      value={formData.shelfLocation}
+                      onChange={handleInputChange}
+                      placeholder="Enter shelf location"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      required
+                    />
+                  </div>
+
                 </div>
                 
                 <button
@@ -245,7 +266,7 @@ const AddBookPage = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4"> Book ID Preview</h3>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-gray-600 mb-2">Generated Book ID:</p>
-                <p className="text-lg font-mono font-bold text-blue-800">{generateBookId()}</p>
+                <p className="text-lg font-mono font-bold text-blue-800">{bookId}</p>
                 <p className="text-xs text-gray-500 mt-2">Auto-generated on save</p>
               </div>
             </div>

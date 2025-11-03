@@ -115,7 +115,8 @@ async def add_issue(
     """Add a new book issue."""
     try:
         #result = library_manager.issue_book(copy_id, student_id, copy_id, issue_date)
-        result = library_manager.issue_book(copy_id, student_id)
+        
+        result = library_manager.stored_procedure_issue_book(student_id, copy_id,date.today())
         if result["status"] == "error":
             raise HTTPException(status_code=500, detail=result["message"])
         return result
