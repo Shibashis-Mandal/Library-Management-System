@@ -472,16 +472,17 @@ class LibraryDatabaseManager:
         conn = get_connection()
         try:
             with conn.cursor() as cur:
-                
+                # resolve author
                 cur.execute("SELECT author_id FROM author WHERE LOWER(name)=LOWER(%s)", (author_name,))
                 result = cur.fetchone()
                 if result:
                     author_id = result[0]
                 else:
-                    cur.execute("INSERT INTO author (name, bio) VALUES (%s, 'Bio not provided') RETURNING author_id;", (author_name,))
+                    cur.execute("INSERT INTO author (name, bio) VALUES (%s, 'Bio not provided') RETURNING author_id;",
+                                (author_name,))
                     author_id = cur.fetchone()[0]
 
-                
+                # resolve category
                 cur.execute("SELECT category_id FROM categories WHERE LOWER(name)=LOWER(%s)", (category_name,))
                 result = cur.fetchone()
                 if result:
@@ -490,7 +491,7 @@ class LibraryDatabaseManager:
                     cur.execute("INSERT INTO categories (name) VALUES (%s) RETURNING category_id;", (category_name,))
                     category_id = cur.fetchone()[0]
 
-                
+                # insert book
                 cur.execute("""
                     INSERT INTO books (title, author, category, isbn, total_copies)
                     VALUES (%s, %s, %s, %s, %s)
@@ -498,15 +499,25 @@ class LibraryDatabaseManager:
                 """, (title, author_id, category_id, isbn, total_copies))
                 book_id = cur.fetchone()[0]
 
-                
-                for i in range(total_copies):
+                # insert copies and capture their ids
+                inserted_copy_ids = []
+                for _ in range(int(total_copies)):
                     cur.execute("""
                         INSERT INTO book_copies (book_id, status, shelf_location)
                         VALUES (%s, 'available', %s)
+                        RETURNING copy_id
                     """, (book_id, shelf_location))
+                    new_copy_id = cur.fetchone()[0]
+                    inserted_copy_ids.append(new_copy_id)
 
                 conn.commit()
-                return {"status": "success", "message": f"Book '{title}' inserted successfully with {total_copies} copies at {shelf_location}."}
+
+                return {
+                    "status": "success",
+                    "message": f"Book '{title}' inserted successfully with Book ID: {book_id} and Copy ID: {inserted_copy_ids[0]}.",
+                    "book_id": book_id,
+                    "copy_ids": inserted_copy_ids
+                }
 
         except Exception as e:
             conn.rollback()
