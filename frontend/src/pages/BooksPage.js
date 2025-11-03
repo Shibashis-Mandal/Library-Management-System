@@ -1,129 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const BooksPage = ({ userRole }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
+  const [sampleBooks, setSampleBooks] = useState([]);  // initialize as empty array
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Sample data - matches your database schema (Books table with related data)
-  const sampleBooks = [
-    {
-      // Books table fields
-      bookId: 'BOOK001',
-      title: "Introduction to Database Systems",
-      isbn: '9780321197849',
-      category: 'Computer Science',
-      totalCopies: 5,
-      
-      // Authors table data (via author-id FK)
-      authorId: 'AUTH001',
-      authorName: "C.J. Date",
-      authorBio: "Renowned database expert and author",
-      
-      // Book-Copies status summary
-      availableCopies: 3,
-      issuedCopies: 2,
-      damagedCopies: 0,
-      lostCopies: 0,
-      
-      // Derived status
-      status: "Available"
-    },
-    {
-      // Books table fields
-      bookId: 'BOOK002',
-      title: "Clean Code",
-      isbn: '9780132350884',
-      category: 'Programming',
-      totalCopies: 3,
-      
-      // Authors table data
-      authorId: 'AUTH002',
-      authorName: "Robert C. Martin",
-      authorBio: "Software engineer and author, known as Uncle Bob",
-      
-      // Book-Copies status summary
-      availableCopies: 0,
-      issuedCopies: 3,
-      damagedCopies: 0,
-      lostCopies: 0,
-      
-      // Derived status
-      status: "All Issued"
-    },
-    {
-      // Books table fields
-      bookId: 'BOOK003',
-      title: "Data Structures and Algorithms",
-      isbn: '9780262033848',
-      category: 'Computer Science',
-      totalCopies: 4,
-      
-      // Authors table data
-      authorId: 'AUTH003',
-      authorName: "Thomas H. Cormen",
-      authorBio: "Professor of Computer Science at Dartmouth College",
-      
-      // Book-Copies status summary
-      availableCopies: 2,
-      issuedCopies: 1,
-      damagedCopies: 1,
-      lostCopies: 0,
-      
-      // Derived status
-      status: "Available"
-    },
-    {
-      // Books table fields
-      bookId: 'BOOK004',
-      title: "The Pragmatic Programmer",
-      isbn: '9780201616224',
-      category: 'Programming',
-      totalCopies: 2,
-      
-      // Authors table data
-      authorId: 'AUTH004',
-      authorName: "David Thomas",
-      authorBio: "Software developer and author of programming books",
-      
-      // Book-Copies status summary
-      availableCopies: 1,
-      issuedCopies: 1,
-      damagedCopies: 0,
-      lostCopies: 0,
-      
-      // Derived status
-      status: "Available"
-    }
-  ];
+  useEffect(() => {
+    // test connection
+    fetch("http://localhost:8000/")
+      .then(res => res.json())
+      .then(data => console.log("BACKEND CONNECTED:", data))
+      .catch(err => console.error("CONNECTION ERROR:", err));
 
+    // fetch books
+    fetch("http://localhost:8000/all-books/")
+      .then(res => res.json())
+      .then(data => {
+        console.log("BOOKS DATA:", data);
+        if (data.status === "success" && Array.isArray(data.data)) {
+          setSampleBooks(data.data);
+        } else if (Array.isArray(data)) {
+          // In case backend directly returns array
+          setSampleBooks(data);
+        } else {
+          setSampleBooks([]);
+          setError("Invalid data format from backend");
+        }
+      })
+      .catch(err => {
+        console.error("ERROR FETCHING BOOKS:", err);
+        setError("Failed to load books");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Helper for badges
   const getStatusBadge = (status, availableCopies) => {
     if (status === "Available" && availableCopies > 0) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-           Available ({availableCopies})
+          Available ({availableCopies})
         </span>
       );
     } else {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-           All Issued
+          All Issued
         </span>
       );
     }
   };
 
+  // Prevent filtering if books not loaded yet
   const filteredBooks = sampleBooks.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.authorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.bookId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.isbn.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterBy === 'all' || 
-                         (filterBy === 'available' && book.availableCopies > 0) ||
-                         (filterBy === 'issued' && book.availableCopies === 0);
+    const matchesSearch =
+      book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.author_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(book.book_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.isbn?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesFilter =
+      filterBy === 'all' ||
+      (filterBy === 'available' && book.available_copies > 0) ||
+      (filterBy === 'issued' && book.available_copies === 0);
+
     return matchesSearch && matchesFilter;
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-lg text-gray-700">
+        Loading books...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-lg text-red-600">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
@@ -132,7 +94,7 @@ const BooksPage = ({ userRole }) => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">📚 Books Collection</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Books Collection</h1>
               <p className="text-gray-600">Browse and search through our library collection</p>
             </div>
             {userRole === 'Admin' && (
@@ -141,7 +103,7 @@ const BooksPage = ({ userRole }) => {
                   onClick={() => navigate('/add-book')}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 flex items-center space-x-2"
                 >
-                  <span>➕</span>
+                  <span>+</span>
                   <span>Add New Book</span>
                 </button>
               </div>
@@ -149,13 +111,12 @@ const BooksPage = ({ userRole }) => {
           </div>
         </div>
 
-        {/* Search and Filter Controls */}
+        {/* Search and Filter */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search Bar */}
             <div className="flex-1">
-              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                 Search Books
+              <label htmlFor="search" className="block text-base pb-3 font-medium text-gray-700 mb-2">
+                Search Books
               </label>
               <input
                 type="text"
@@ -167,10 +128,9 @@ const BooksPage = ({ userRole }) => {
               />
             </div>
 
-            {/* Filter Dropdown */}
-            <div className="sm:w-48">
+            {/* <div className="sm:w-48">
               <label htmlFor="filter" className="block text-sm font-medium text-gray-700 mb-2">
-                 Filter by Status
+                Filter by Status
               </label>
               <select
                 id="filter"
@@ -182,59 +142,58 @@ const BooksPage = ({ userRole }) => {
                 <option value="available">Available Only</option>
                 <option value="issued">Issued Only</option>
               </select>
-            </div>
+            </div> */}
           </div>
         </div>
 
-        {/* Books Display */}
+        {/* Books Table */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Book Details
+                    Title
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Author Info
+                    Author
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category & ISBN
+                    Category
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Copy Status
+                    ISBN
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Availability
+                    Total Copies
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredBooks.map((book) => (
-                  <tr key={book.bookId} className="hover:bg-gray-50 transition-colors duration-200">
+                  <tr
+                    key={book.book_id}
+                    className="hover:bg-gray-50 transition-colors duration-200"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{book.title}</div>
-                      <div className="text-sm text-gray-500">Book ID: {book.bookId}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{book.authorName}</div>
-                      <div className="text-sm text-gray-500">ID: {book.authorId}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{book.category}</div>
-                      <div className="text-sm text-gray-500">ISBN: {book.isbn}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs text-gray-600">
-                        <div>Available: {book.availableCopies}</div>
-                        <div>Issued: {book.issuedCopies}</div>
-                        <div>Damaged: {book.damagedCopies}</div>
-                        <div>Lost: {book.lostCopies}</div>
+                      <div className="text-base font-medium text-gray-900">
+                        {book.title}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        ID: {book.book_id}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(book.status, book.availableCopies)}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {book.author_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {book.category_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {book.isbn}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {book.total_copies}
                     </td>
                   </tr>
                 ))}
@@ -245,39 +204,32 @@ const BooksPage = ({ userRole }) => {
           {/* Mobile Card View */}
           <div className="md:hidden">
             {filteredBooks.map((book) => (
-              <div key={book.bookId} className="p-6 border-b border-gray-200 last:border-b-0">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-medium text-gray-900">{book.title}</h3>
-                  {getStatusBadge(book.status, book.availableCopies)}
-                </div>
-                <p className="text-sm text-gray-600 mb-1"> {book.authorName} ({book.authorId})</p>
-                <p className="text-sm text-gray-600 mb-1"> {book.category}   {book.isbn}</p>
-                <p className="text-sm text-gray-600 mb-1"> Book ID: {book.bookId}</p>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium"> Status:</span> Available: {book.availableCopies} | Issued: {book.issuedCopies} | Damaged: {book.damagedCopies} | Lost: {book.lostCopies}
-                </div>
+              <div
+                key={book.book_id}
+                className="p-6 border-b border-gray-200 last:border-b-0"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {book.title}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Author: <span className="font-medium">{book.author_name}</span>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Category: <span className="font-medium">{book.category_name}</span>
+                </p>
+                <p className="text-sm text-gray-600">ISBN: {book.isbn}</p>
+                <p className="text-sm text-gray-600">
+                  Total Copies: <span className="font-medium">{book.total_copies}</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-2">Book ID: {book.book_id}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Results Info */}
+
         <div className="mt-6 text-center text-gray-600">
           Showing {filteredBooks.length} of {sampleBooks.length} books
-        </div>
-
-        {/* Backend Integration Note */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-800 mb-2">🔧 Ready for Backend Integration</h3>
-          <p className="text-blue-700">
-            This page is ready to connect to your Python backend API endpoint: 
-            <code className="bg-blue-100 px-2 py-1 rounded ml-1">GET /api/books</code>
-          </p>
-          {userRole === 'Student' && (
-            <p className="text-blue-600 text-sm mt-2">
-              Students can browse and search all available books in the library collection.
-            </p>
-          )}
         </div>
       </div>
     </div>

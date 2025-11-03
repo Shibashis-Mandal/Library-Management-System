@@ -4,7 +4,7 @@ const SearchBar = ({
   value, 
   onChange, 
   placeholder = "Search...", 
-  icon = "🔍",
+  icon = "",
   className = "",
   onSubmit,
   suggestions = [],
@@ -37,7 +37,7 @@ const SearchBar = ({
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
               <span className="text-gray-400 hover:text-gray-600 transition-colors duration-200">
-                ➤
+                Go
               </span>
             </button>
           )}

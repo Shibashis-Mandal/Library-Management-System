@@ -9,7 +9,7 @@ const ProfilePage = ({ userRole }) => {
 
   // Sample profile data - will be replaced with API calls
   const sampleProfiles = {
-    Admin: {
+      Admin: {
       name: 'Dr. Rajesh Kumar',
       email: 'admin@hit.edu.in',
       id: 'ADM001',
@@ -17,7 +17,7 @@ const ProfilePage = ({ userRole }) => {
       phone: '+91 98765 43210',
       joinDate: '2020-01-15',
       role: 'Head Librarian',
-      avatar: '👨‍💼',
+  avatar: '',
       address: 'HIT Campus, Haldia, West Bengal - 721657',
       qualification: 'Ph.D in Library Science',
       experience: '15 Years',
@@ -29,7 +29,7 @@ const ProfilePage = ({ userRole }) => {
         activeUsers: 245
       }
     },
-    Student: {
+  Student: {
       name: 'Arjun Sharma',
       email: 'arjun.sharma@student.hit.edu.in',
       id: 'STU2024001',
@@ -37,7 +37,7 @@ const ProfilePage = ({ userRole }) => {
       phone: '+91 87654 32109',
       joinDate: '2024-08-01',
       role: 'B.Tech Student',
-      avatar: '👨‍🎓',
+  avatar: '',
       address: 'Hostel Block-A, Room 205, HIT Campus',
       semester: '5th Semester',
       year: '3rd Year',
@@ -92,7 +92,7 @@ const ProfilePage = ({ userRole }) => {
             <span>←</span>
             <span>Back</span>
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">👤 Profile</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile</h1>
           <p className="text-gray-600">Manage your profile information and settings</p>
         </div>
 
@@ -131,13 +131,13 @@ const ProfilePage = ({ userRole }) => {
                     : 'bg-blue-500 hover:bg-blue-600 text-white'
                 }`}
               >
-                {isEditing ? '✅ Save Changes' : '✏️ Edit Profile'}
+                {isEditing ? 'Save Changes' : 'Edit Profile'}
               </button>
             </div>
 
             {/* Stats Card */}
             <div className="mt-6 bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Statistics</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
               <div className="space-y-3">
                 {Object.entries(profileData.stats).map(([key, value]) => (
                   <div key={key} className="flex justify-between items-center">
@@ -153,7 +153,7 @@ const ProfilePage = ({ userRole }) => {
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Information */}
             <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">📋 Personal Information</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-6">Personal Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -222,7 +222,7 @@ const ProfilePage = ({ userRole }) => {
             {/* Role Specific Information */}
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">
-                {userRole === 'Admin' ? '🔧 Administrative Details' : '🎓 Academic Details'}
+                {userRole === 'Admin' ? 'Administrative Details' : 'Academic Details'}
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -278,7 +278,7 @@ const ProfilePage = ({ userRole }) => {
 
         {/* Backend Integration Note */}
         <div className="mt-8 bg-purple-50 border border-purple-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-purple-800 mb-2">🔧 Backend Integration Ready</h3>
+          <h3 className="text-lg font-semibold text-purple-800 mb-2">Backend Integration Ready</h3>
           <p className="text-purple-700 text-sm">
             Profile data ready for API integration:
           </p>

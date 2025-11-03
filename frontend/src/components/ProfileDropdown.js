@@ -19,7 +19,7 @@ const ProfileDropdown = ({ userRole, onLogout }) => {
   }, []);
 
   const getAvatar = (role) => {
-    return role === 'Admin' ? '👨‍💼' : '👨‍🎓';
+    return '';
   };
 
   const getInitials = (role) => {
@@ -65,7 +65,7 @@ const ProfileDropdown = ({ userRole, onLogout }) => {
               }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center space-x-2 transition-colors duration-200"
             >
-              <span>🚪</span>
+              <span />
               <span>Logout</span>
             </button>
           </div>

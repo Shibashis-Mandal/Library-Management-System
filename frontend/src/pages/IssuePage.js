@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 const IssuePage = () => {
   const [formData, setFormData] = useState({
-    // Issues table fields (matching your schema)
-    studentId: '',        // student-id (FK)
-    copyId: '',          // copy-id (FK to book-copies)
-    issueDate: new Date().toISOString().split('T')[0],  // issue-date
-    dueDate: '',         // due-date
-    returned: 'NO'       // returned ENUM ('Yes', 'NO')
+    studentId: '',
+    copyId: '',
   });
-  
-  const [studentDetails, setStudentDetails] = useState(null);
-  const [copyDetails, setCopyDetails] = useState(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [fines, setFines] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Fetch fines report
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/issue-report/')
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'success') {
+          setFines(data.data);
+        }
+      })
+      .catch(err => console.error('Error fetching fines report:', err));
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -24,254 +34,190 @@ const IssuePage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setMessage({ type: '', text: '' });
+  e.preventDefault();
+  setIsSubmitting(true);
+  setMessage({ type: '', text: '' });
 
-    // Simulate API call - replace with actual backend integration
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-      
-      // Mock validation according to Issues table
-      if (!formData.studentId || !formData.copyId || !formData.dueDate) {
-        throw new Error('Student ID, Copy ID, and Due Date are required');
-      }
-
-      // Mock student validation from Students table
-      const mockStudent = {
-        studentId: formData.studentId,
-        name: 'John Doe',
-        dept: 'Computer Science',
-        email: 'john@example.com',
-        phone: '+91-9876543210'
-      };
-
-      // Mock copy validation from Book-Copies table
-      const mockCopy = {
-        copyId: formData.copyId,
-        bookId: 'BOOK001',
-        title: 'Database Systems',
-        status: 'Available',
-        shelfLocation: 'A-01-05'
-      };
-
-      // Mock success response
-      setMessage({ 
-        type: 'success', 
-        text: ` Book successfully issued to Student ID: ${formData.studentId}` 
-      });
-      
-      // Reset form according to Issues table
-      setFormData({
-        studentId: '',
-        copyId: '',
-        issueDate: new Date().toISOString().split('T')[0],
-        dueDate: '',
-        returned: 'NO'
-      });
-      setStudentDetails(null);
-      setCopyDetails(null);
-
-    } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: ` ${error.message || 'Failed to issue book. Please try again.'}` 
-      });
-    } finally {
-      setIsSubmitting(false);
+  try {
+    if (!formData.studentId || !formData.copyId) {
+      throw new Error('Student ID and Copy ID are required');
     }
-  };
 
-  // Generate default due date (14 days from now)
-  const getDefaultDueDate = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 14);
-    return date.toISOString().split('T')[0];
-  };
+    const response = await fetch(`http://localhost:8000/add_issue/?student_id=${formData.studentId}&copy_id=${formData.copyId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to issue book');
+    }
+
+    const data = await response.json();
+
+    setMessage({
+      type: 'success',
+      text: `Book successfully issued to Student ID: ${formData.studentId}`,
+    });
+
+    // Reset the form
+    setFormData({
+      studentId: '',
+      copyId: '',
+    });
+  } catch (error) {
+    setMessage({
+      type: 'error',
+      text: error.message || 'Failed to issue book. Please try again.',
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
+  // Filter fines based on search term
+  const filteredFines = fines.filter((row) => {
+    const query = searchTerm.toLowerCase();
+    return (
+      row.student_name?.toLowerCase().includes(query) ||
+      // row.student_id?.toString().includes(query) ||
+      row.issue_id?.toString().includes(query) 
+      // row.copy_id?.toString().includes(query)
+    );
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">📤 Issue Book</h1>
-          <p className="text-gray-600">Issue a book copy to a student</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-6">
+      <div className="max-w-5xl mx-auto space-y-10">
+        {/* Expandable Section: Issue New Book */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex justify-between items-center p-6 cursor-pointer bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
+          >
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              Issue New Book
+            </h2>
+            {isExpanded ? <ChevronUp /> : <ChevronDown />}
+          </div>
+
+          {isExpanded && (
+            <div className="p-6 border-t border-gray-200 animate-fadeIn">
+              {/* Book Issue Form */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Student ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Student ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="studentId"
+                    value={formData.studentId}
+                    onChange={handleInputChange}
+                    placeholder="Enter student ID"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                {/* Copy ID */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Copy ID <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="copyId"
+                    value={formData.copyId}
+                    onChange={handleInputChange}
+                    placeholder="Enter copy ID"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`w-full py-3 rounded-lg text-white font-medium transition-all duration-200 ${
+                    isSubmitting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 hover:shadow-lg'
+                  }`}
+                >
+                  {isSubmitting ? 'Issuing Book...' : 'Issue Book'}
+                </button>
+              </form>
+
+              {/* Message Display */}
+              {message.text && (
+                <div
+                  className={`mt-6 p-4 rounded-lg ${
+                    message.type === 'success'
+                      ? 'bg-green-50 border border-green-200 text-green-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Issue Form */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Book Issue Form</h2>
+        {/* Fines Report Section */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900">Books Issued</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Student ID */}
-              <div>
-                <label htmlFor="studentId" className="block text-sm font-medium text-gray-700 mb-2">
-                   Student ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="studentId"
-                  name="studentId"
-                  value={formData.studentId}
-                  onChange={handleInputChange}
-                  placeholder="Enter student ID (e.g., STU001)"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  required
-                />
-              </div>
-
-              {/* Issue Date */}
-              <div>
-                <label htmlFor="issueDate" className="block text-sm font-medium text-gray-700 mb-2">
-                   Issue Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="issueDate"
-                  name="issueDate"
-                  value={formData.issueDate}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  required
-                />
-              </div>
-
-              {/* Copy ID */}
-              <div>
-                <label htmlFor="copyId" className="block text-sm font-medium text-gray-700 mb-2">
-                   Copy ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="copyId"
-                  name="copyId"
-                  value={formData.copyId}
-                  onChange={handleInputChange}
-                  placeholder="Enter copy ID (e.g., COPY001)"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  required
-                />
-              </div>
-
-              {/* Due Date */}
-              <div>
-                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Due Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="dueDate"
-                  name="dueDate"
-                  value={formData.dueDate || getDefaultDueDate()}
-                  onChange={handleInputChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  required
-                />
-                <p className="text-sm text-gray-500 mt-1">Default: 14 days from today</p>
-              </div>
-
-              {/* Returned Status (For database schema compliance) */}
-              <div>
-                <label htmlFor="returned" className="block text-sm font-medium text-gray-700 mb-2">
-                  Return Status
-                </label>
-                <select
-                  id="returned"
-                  name="returned"
-                  value={formData.returned}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  disabled // Always NO for new issues
-                >
-                  <option value="NO">NO (Not Returned)</option>
-                  <option value="YES">YES (Returned)</option>
-                </select>
-                <p className="text-sm text-gray-500 mt-1">New issues are always set to "NO"</p>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full py-3 px-6 rounded-lg text-white font-medium transition-all duration-200 ${
-                  isSubmitting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 hover:shadow-lg transform hover:-translate-y-0.5'
-                }`}
-              >
-                {isSubmitting ? ' Issuing Book...' : 'Issue Book'}
-              </button>
-            </form>
-
-            {/* Message Display */}
-            {message.text && (
-              <div className={`mt-6 p-4 rounded-lg ${
-                message.type === 'success' 
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-red-50 border border-red-200 text-red-800'
-              }`}>
-                {message.text}
-              </div>
-            )}
-          </div>
-
-          {/* Information Panel */}
-          <div className="space-y-6">
-            {/* Issue Guidelines */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4"> Issue Guidelines</h3>
-              <ul className="space-y-3 text-sm text-gray-600">
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Verify student ID before issuing</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Check book availability status</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Standard loan period is 14 days</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Maximum 3 books per student</span>
-                </li>
-                <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-1">•</span>
-                  <span>Late returns incur daily fine</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">⚡ Quick Actions</h3>
-              <div className="space-y-3">
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                   Search Available Books
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                   Verify Student Details
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                   View Issue History
-                </button>
-              </div>
-            </div>
-
-            {/* Backend Integration */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">🔧 Backend Integration</h3>
-              <p className="text-yellow-700 text-sm">
-                Ready for API endpoint: <code className="bg-yellow-100 px-2 py-1 rounded">POST /api/issue</code>
-                <br />
-                Calls stored procedure: <code className="bg-yellow-100 px-2 py-1 rounded">IssueBook()</code>
-              </p>
+            {/* Search Bar */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by name, issue ID"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <Search className="absolute left-3 top-2.5 text-gray-400 w-5 h-5" />
             </div>
           </div>
+
+          {filteredFines.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Student ID</th>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Student Name</th>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Issue ID</th>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Copy ID</th>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Total Fines</th>
+                    <th className="px-6 py-3 text-left text-gray-700 font-semibold">Returned</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredFines.map((row) => (
+                    <tr key={`${row.student_id}-${row.issue_id}-${row.copy_id}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-800">{row.student_id}</td>
+                      <td className="px-6 py-4 text-gray-800">{row.student_name}</td>
+                      <td className="px-6 py-4 text-gray-800">{row.issue_id}</td>
+                      <td className="px-6 py-4 text-gray-800">{row.copy_id}</td>
+                      <td className="px-6 py-4 text-red-600 font-semibold">₹{row.total_fines}</td>
+                      <td className="px-6 py-4 text-gray-600 font-semibold">{row.returned}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-600">No matching fines found.</p>
+          )}
         </div>
       </div>
     </div>

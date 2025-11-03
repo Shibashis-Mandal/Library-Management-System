@@ -25,17 +25,17 @@ const Navbar = ({ userRole, onLogout }) => {
   const getNavigationLinks = () => {
     if (userRole === 'Admin') {
       return [
-        { path: '/books', label: '📚 Books', icon: '📚' },
-        { path: '/add-book', label: '➕ Add Book', icon: '➕' },
-        { path: '/issue', label: '📤 Issue Book', icon: '📤' },
-        { path: '/return', label: '📥 Return Book', icon: '📥' },
-        { path: '/reports', label: '📊 Reports', icon: '📊' }
+        { path: '/books', label: 'Books', icon: '' },
+        { path: '/add-book', label: 'Add Book', icon: '+' },
+        { path: '/issue', label: 'Issue Book', icon: '' },
+        { path: '/return', label: 'Return Book', icon: '' },
+        // { path: '/reports', label: 'Reports', icon: '' }
       ];
-    } else if (userRole === 'Student') {
-      return [
-        { path: '/books', label: '📚 Books', icon: '📚' }
-      ];
-    }
+  // } else if (userRole === 'Student') {
+  //   return [
+  //     { path: '/books', label: 'Books', icon: '' }
+  //   ];
+  }
     return [];
   };
 
@@ -60,7 +60,7 @@ const Navbar = ({ userRole, onLogout }) => {
               className="flex items-center space-x-2 text-xl font-bold text-gray-800 hover:text-blue-600 transition-colors duration-200"
               onClick={closeMobileMenu}
             >
-              <span className="text-2xl">📚</span>
+
               <span className="hidden sm:block">HIT Library</span>
               <span className="sm:hidden">Library</span>
             </Link>

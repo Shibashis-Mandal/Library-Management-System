@@ -22,7 +22,7 @@ const HomePage = ({ userRole, setUserRole }) => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            📚 HIT Library Management System
+            HIT Library Management System
           </h1>
           <p className="text-gray-600">
             Select your role to continue
@@ -72,7 +72,7 @@ const HomePage = ({ userRole, setUserRole }) => {
               : 'bg-gray-300 cursor-not-allowed'
           }`}
         >
-          📚 Go to Library
+          Go to Library
         </button>
 
         {/* Helper text */}
