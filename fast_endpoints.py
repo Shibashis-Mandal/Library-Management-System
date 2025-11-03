@@ -149,13 +149,15 @@ async def delete_book(book_id: int):
     except Exception as e:
         logger.error(f"Error deleting book {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Could not delete book.")
-    
-@app.post("/books/{title}/{author_name}/{category_name}/{isbn}/{total_copies}")
-async def insert_book(title: str, author_name: str, category_name: str, isbn: str, total_copies: int):
+ 
+ 
+ ## Add self_location path varibale here . As book_copies need self_location while inserting copies.   
+@app.post("/books/{title}/{author_name}/{category_name}/{isbn}/{total_copies}/{shelf_location}")
+async def insert_book(title: str, author_name: str, category_name: str, isbn: str, total_copies: int, shelf_location: str):
     """Insert a new book using path variables."""
     try:
         result = library_manager.insert_book(
-            title, author_name, category_name, isbn, total_copies
+            title, author_name, category_name, isbn, total_copies, shelf_location
         )
 
         if result["status"] == "error":

@@ -440,24 +440,31 @@ class LibraryDatabaseManager:
         DECLARE
             author_name TEXT;
             category_name TEXT;
+            i INT;
         BEGIN
-            -- Fetch the author and category names using their IDs
+            -- Fetch author and category names
             SELECT name INTO author_name FROM author WHERE author_id = NEW.author;
             SELECT name INTO category_name FROM categories WHERE category_id = NEW.category;
 
-            -- Optional: log the action
-            RAISE NOTICE 'Book inserted: %, Author: %, Category: %', NEW.title, author_name, category_name;
+            -- Create book copies with default shelf label
+            FOR i IN 1..NEW.total_copies LOOP
+                INSERT INTO book_copies (book_id, status, shelf_location)
+                VALUES (NEW.book_id, 'available', 'AUTO');
+            END LOOP;
+
+            RAISE NOTICE 'Book inserted: %, Author: %, Category: %, % copies created',
+                NEW.title, author_name, category_name, NEW.total_copies;
 
             RETURN NEW;
         END;
         $$ LANGUAGE plpgsql;
 
         DROP TRIGGER IF EXISTS after_book_insert ON books;
-
         CREATE TRIGGER after_book_insert
         AFTER INSERT ON books
         FOR EACH ROW
         EXECUTE FUNCTION handle_book_insert();
+
         """
         conn = get_connection() 
         try:
@@ -469,12 +476,7 @@ class LibraryDatabaseManager:
             print(f"Error creating new book trigger: {e}")
         finally:
             release_connection(conn)
-
-            
-    
-        
-        
-    def insert_book(self, title, author_name, category_name, isbn, total_copies):
+    def insert_book(self, title, author_name, category_name, isbn, total_copies, shelf_location):
         conn = get_connection()
         try:
             with conn.cursor() as cur:
@@ -500,15 +502,27 @@ class LibraryDatabaseManager:
                 cur.execute("""
                     INSERT INTO books (title, author, category, isbn, total_copies)
                     VALUES (%s, %s, %s, %s, %s)
+                    RETURNING book_id
                 """, (title, author_id, category_id, isbn, total_copies))
+                book_id = cur.fetchone()[0]
+
                 
+                for i in range(total_copies):
+                    cur.execute("""
+                        INSERT INTO book_copies (book_id, status, shelf_location)
+                        VALUES (%s, 'available', %s)
+                    """, (book_id, shelf_location))
+
                 conn.commit()
-                return {"status": "success", "message": f"Book '{title}' inserted successfully!"}
+                return {"status": "success", "message": f"Book '{title}' inserted successfully with {total_copies} copies at {shelf_location}."}
+
         except Exception as e:
             conn.rollback()
             return {"status": "error", "message": str(e)}
         finally:
             release_connection(conn)
+
+
 
     def create_book_delete_trigger(self):
         sql = """
@@ -1282,14 +1296,16 @@ if __name__ == "__main__":
     # db.insert_return_and_update_book(copy_id,student_id)
 
     # db.create_new_book_trigger()
-    
+
     # result = db.insert_book(
-    #     title="Life of a Scientist",
-    #     author_name="Dr. S. Bose",
-    #     category_name="Poetry",
-    #     isbn="99988877766651",
-    #     total_copies=5
+    #     title="Algorithms Unlocked Advanced",
+    #     author_name="Thomas Cormen",
+    #     category_name="Computer Science",
+    #     isbn="97802625188028956",
+    #     total_copies=5,
+    #     shelf_location="A3-Row2"
     # )
+
 
     # print(result)
     # print("Book inserted successfully!")
