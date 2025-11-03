@@ -158,7 +158,7 @@ async def insert_book(title: str, author_name: str, category_name: str, isbn: st
     """Insert a new book using path variables."""
     try:
         result = library_manager.insert_book(
-            title, author_name, category_name, isbn, total_copies, shelf_location
+            title, author_name, category_name, isbn, 1, shelf_location
         )
 
         if result["status"] == "error":

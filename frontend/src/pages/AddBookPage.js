@@ -69,6 +69,7 @@ const AddBookPage = () => {
       const response = await fetch(apiUrl, {
         method: 'POST',
       });
+      console.log(response)
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -79,7 +80,7 @@ const AddBookPage = () => {
       
       setMessage({
         type: 'success',
-        text: `Book "${formData.title}" successfully added! ID: ${result.book_id || 'N/A'}`
+        text: result.message || 'Book added successfully to the library.'
       });
       
       setFormData({
